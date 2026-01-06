@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart'; // For getIt
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/articles/data/models/article.dart'; // Assuming your Article model
 import 'package:zad_aldaia/features/articles/logic/articles_cubit.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
@@ -104,7 +106,15 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(centerTitle: true, title: Text(widget.isEditMode ? 'Edit Article' : 'Create New Article')),
+      backgroundColor: MyColors.backgroundColor,
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          widget.isEditMode ? 'Edit Article' : 'Create New Article',
+          style: MyTextStyle.headingMedium.copyWith(color: Colors.white),
+        ),
+        backgroundColor: MyColors.primaryColor,
+      ),
       body: BlocProvider(
         create: (context) => store,
         child: BlocListener<ArticlesCubit, ArticlesState>(
@@ -118,12 +128,22 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Category:', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Category:', style: MyTextStyle.labelLarge),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Expanded(child: ElevatedButton(onPressed: _selectCategory, child: Text(category?.title ?? '(Top Level)'))),
-                          if (category != null) IconButton(icon: const Icon(Icons.clear), onPressed: () => setParent(null), tooltip: "Clear parent"),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _selectCategory,
+                              child: Text(category?.title ?? '(Top Level)'),
+                            ),
+                          ),
+                          if (category != null)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => setParent(null),
+                              tooltip: "Clear parent",
+                            ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -137,12 +157,23 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
                           return null;
                         },
                       ),
-
                       const SizedBox(height: 100),
                       if (state is SavingState)
-                        const Center(child: CircularProgressIndicator())
+                        const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                          ),
+                        )
                       else
-                        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _submitForm, child: Text(widget.isEditMode ? 'Update Article' : 'Create Article'))),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _submitForm,
+                            child: Text(
+                              widget.isEditMode ? 'Update Article' : 'Create Article',
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

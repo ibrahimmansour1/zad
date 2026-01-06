@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/articles/logic/articles_cubit.dart';
 import 'package:zad_aldaia/features/articles/ui/widgets/article_item.dart';
 
@@ -53,10 +55,10 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FAE6),
+      backgroundColor: MyColors.backgroundColor,
       floatingActionButton: _showScrollToTop
           ? FloatingActionButton(
-              backgroundColor: const Color(0xFF005A32),
+              backgroundColor: MyColors.primaryColor,
               child: const Icon(Icons.arrow_upward, color: Colors.white),
               onPressed: () => _scrollController.animateTo(
                 0,
@@ -68,23 +70,11 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
       appBar: AppBar(
         title: Text(
           widget.title,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Exo',
-            color: Colors.white,
-          ),
+          style: MyTextStyle.headingMedium.copyWith(color: Colors.white),
         ),
         centerTitle: true,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF005A32), Color(0xFF008A45)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        backgroundColor: MyColors.primaryColor,
+        elevation: 0,
         actions: [
           if (Supabase.instance.client.auth.currentUser != null)
             IconButton(
@@ -106,7 +96,7 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
             if (state is LoadingState) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF005A32),
+                  valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
                 ),
               );
             }
@@ -134,9 +124,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                       const SizedBox(height: 16),
                       Text(
                         'No articles found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
+                        style: MyTextStyle.bodyMedium.copyWith(
+                          color: Colors.grey.shade600,
                         ),
                       ),
                       if (Supabase.instance.client.auth.currentUser != null)

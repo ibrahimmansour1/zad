@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/Language.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/categories/ui/CategorySelectionScreen.dart';
@@ -153,9 +155,11 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FAE6),
+      backgroundColor: MyColors.backgroundColor,
       appBar: AppBar(
         centerTitle: true,
+        backgroundColor: MyColors.primaryColor,
+        elevation: 2,
         title: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -165,9 +169,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
                 offset: Offset(0, _slideAnimation.value),
                 child: Text(
                   widget.isEditMode ? 'Edit Category' : 'Create New Category',
-                  style: GoogleFonts.exo(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
+                  style: MyTextStyle.headingMedium.copyWith(
                     color: Colors.white,
                   ),
                 ),
@@ -175,25 +177,6 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
             );
           },
         ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF005A32),
-                Color(0xFF008C5A),
-              ],
-            ),
-          ),
-        ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(20),
-          ),
-        ),
-        elevation: 8,
-        shadowColor: Colors.green.shade800.withOpacity(0.3),
       ),
       body: BlocProvider(
         create: (context) => store,
