@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/storage.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/core/widgets/highlighted_text.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';

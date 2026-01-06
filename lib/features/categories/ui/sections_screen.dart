@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/auth/auth_cubit.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/categories/ui/AddNewCategoryCard.dart';
@@ -32,7 +34,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FAE6),
+      backgroundColor: MyColors.backgroundColor,
       body: BlocProvider(
         create: (context) => cubit,
         child: BlocBuilder<CategoriesCubit, CategoriesState>(
@@ -41,7 +43,11 @@ class _SectionsScreenState extends State<SectionsScreen> {
               return Center(child: Text(state.error));
             }
             if (state is LoadingState) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                ),
+              );
             }
             if (state is ListLoadedState) {
               return Column(
@@ -50,7 +56,7 @@ class _SectionsScreenState extends State<SectionsScreen> {
                   if (state.isOffline)
                     Container(
                       width: double.infinity,
-                      color: Colors.orange.shade800,
+                      color: MyColors.warningColor,
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 16),
                       child: const Row(
@@ -67,16 +73,11 @@ class _SectionsScreenState extends State<SectionsScreen> {
                       ),
                     ),
                   const SizedBox(height: 40),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 25.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
                     child: Text(
                       'Explore Islamic Knowledge',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                        fontFamily: 'Exo',
-                      ),
+                      style: MyTextStyle.displaySmall,
                     ),
                   ),
                   const SizedBox(height: 12),

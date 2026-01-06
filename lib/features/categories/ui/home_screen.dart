@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/language.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/auth/auth_cubit.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/import/json_import_screen.dart';
@@ -41,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FAE6),
+      backgroundColor: MyColors.backgroundColor,
       body: SafeArea(
         top: false,
         child: Column(
@@ -62,46 +64,45 @@ class _HomeScreenState extends State<HomeScreen> {
         : 'assets/images/png/muslim_icon.png';
 
     return Container(
-      height: 250,
       decoration: const BoxDecoration(
-        color: Color(0xFF005A32),
+        color: MyColors.primaryColor,
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(50),
-          bottomRight: Radius.circular(50),
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 90),
-        child: Align(
-          alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
+        child: SafeArea(
+          bottom: false,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'Assalam Alakum 👋🏼',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Exo',
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Assalam Alakum 👋🏼',
+                      style: MyTextStyle.headingLarge.copyWith(
+                        color: Colors.white,
+                        fontSize: 22,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'Welcome Back!',
-                    style: TextStyle(
-                      fontSize: 19,
-                      color: Colors.white70,
-                      fontFamily: 'Exo',
+                    const SizedBox(height: 8),
+                    Text(
+                      'Welcome Back!',
+                      style: MyTextStyle.bodyMedium.copyWith(
+                        color: Colors.white70,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 16),
               CircleAvatar(
-                radius: 23,
+                radius: 28,
                 backgroundColor: Colors.white,
                 backgroundImage: AssetImage(avatarImage),
               ),
@@ -115,22 +116,26 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNavBar(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: MyColors.surfaceColor,
         boxShadow: [
-          BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
+          BoxShadow(
+            blurRadius: 12,
+            color: Colors.black.withOpacity(0.08),
+          ),
         ],
       ),
       child: SafeArea(
+        top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
           child: GNav(
             gap: 8,
             iconSize: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            duration: const Duration(milliseconds: 400),
-            tabBackgroundColor: const Color(0xFF005A32),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            duration: const Duration(milliseconds: 300),
+            tabBackgroundColor: MyColors.primaryColor,
             activeColor: Colors.white,
-            color: Colors.black,
+            color: MyColors.textSecondary,
             tabs: const [
               GButton(icon: LineIcons.search, text: 'Search'),
               GButton(icon: LineIcons.home, text: 'Home'),
@@ -176,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 20, vertical: 16),
                     decoration: const BoxDecoration(
-                      color: Color.fromARGB(255, 243, 251, 236),
+                      color: MyColors.backgroundColor,
                       borderRadius:
                           BorderRadius.vertical(top: Radius.circular(24)),
                     ),
@@ -196,13 +201,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
 
-                        const Text(
+                        Text(
                           'Language Cible',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                          style: MyTextStyle.headingMedium,
                         ),
                         const SizedBox(height: 10),
 
@@ -213,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: MyColors.surfaceColor,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -243,10 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const SizedBox(width: 12),
                                         Text(
                                           _getLanguageDisplayName(currentLang),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          style: MyTextStyle.headingSmall,
                                         ),
                                       ],
                                     ),

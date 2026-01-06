@@ -5,6 +5,8 @@ import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/share.dart';
 import 'package:zad_aldaia/core/helpers/storage.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';
 import 'package:zad_aldaia/features/items/ui/widgets/image_item.dart';
@@ -62,27 +64,15 @@ class _ItemsScreenState extends State<ItemsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FAE6),
+      backgroundColor: MyColors.backgroundColor,
       appBar: AppBar(
         title: Text(
           widget.title ?? 'Items',
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Exo',
-            color: Colors.white,
-          ),
+          style: MyTextStyle.headingMedium.copyWith(color: Colors.white),
         ),
         centerTitle: true,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF005A32), Color(0xFF008A45)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        backgroundColor: MyColors.primaryColor,
+        elevation: 0,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,

@@ -177,10 +177,131 @@ class MyApp extends StatelessWidget {
                 GlobalCupertinoLocalizations.delegate,
               ],
               theme: ThemeData(
+                useMaterial3: true,
                 dividerColor: Colors.transparent,
                 primaryColor: MyColors.primaryColor,
                 fontFamily: "almarai_bold",
-                scaffoldBackgroundColor: Colors.white,
+                scaffoldBackgroundColor: MyColors.backgroundColor,
+                // Color Scheme
+                colorScheme: const ColorScheme.light(
+                  primary: MyColors.primaryColor,
+                  onPrimary: Colors.white,
+                  primaryContainer: MyColors.primaryLight,
+                  onPrimaryContainer: MyColors.primaryDark,
+                  secondary: MyColors.secondaryColor,
+                  onSecondary: Colors.white,
+                  surface: MyColors.surfaceColor,
+                  onSurface: MyColors.textPrimary,
+                  error: MyColors.errorColor,
+                  onError: Colors.white,
+                ),
+                // AppBar Theme
+                appBarTheme: const AppBarTheme(
+                  backgroundColor: MyColors.primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  centerTitle: true,
+                  titleTextStyle: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                // Card Theme
+                cardTheme: CardTheme(
+                  color: MyColors.surfaceColor,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                // Button Themes
+                elevatedButtonTheme: ElevatedButtonThemeData(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: MyColors.primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 2,
+                  ),
+                ),
+                outlinedButtonTheme: OutlinedButtonThemeData(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: MyColors.primaryColor,
+                    side: const BorderSide(color: MyColors.primaryColor, width: 1.5),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(
+                    foregroundColor: MyColors.primaryColor,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                ),
+                // TextField Theme
+                inputDecorationTheme: InputDecorationTheme(
+                  filled: true,
+                  fillColor: MyColors.offWhite,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: MyColors.offWhite),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: MyColors.offWhite),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: MyColors.errorColor),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: MyColors.errorColor, width: 2),
+                  ),
+                  labelStyle: TextStyle(
+                    color: MyColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                  hintStyle: TextStyle(
+                    color: MyColors.textTertiary,
+                    fontSize: 14,
+                  ),
+                ),
+                // Icon Theme
+                iconTheme: const IconThemeData(
+                  color: MyColors.primaryColor,
+                  size: 24,
+                ),
+                // SnackBar Theme
+                snackBarTheme: SnackBarThemeData(
+                  backgroundColor: MyColors.textPrimary,
+                  contentTextStyle: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                // Dialog Theme
+                dialogTheme: DialogTheme(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  backgroundColor: MyColors.surfaceColor,
+                  elevation: 8,
+                ),
               ),
             );
           },

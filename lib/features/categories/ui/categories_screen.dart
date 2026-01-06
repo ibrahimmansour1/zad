@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/widgets/admin_breadcrumb.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
@@ -39,9 +40,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0FAE6),
+      backgroundColor: MyColors.backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF005A32),
+        backgroundColor: MyColors.primaryColor,
         titleTextStyle: MyTextStyle.font16WhiteBold,
         centerTitle: true,
         elevation: 0,
@@ -108,7 +109,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             } else if (state is LoadingState) {
               return const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF005A32)),
+                  valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
                 ),
               );
             } else if (state is ErrorState) {
@@ -131,17 +132,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF005A32),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
                       onPressed: loadData,
-                      child: const Text(
-                        'Retry',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: const Text('Retry'),
                     ),
                   ],
                 ),

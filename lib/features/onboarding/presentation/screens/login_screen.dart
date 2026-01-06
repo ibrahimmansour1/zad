@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/auth/auth_cubit.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF005A32),
+      backgroundColor: MyColors.primaryColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -36,8 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: TextButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    label: const Text("Back",
-                        style: TextStyle(color: Colors.white)),
+                    label: const Text("Back", style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 Center(
@@ -46,13 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     height: 350,
                   ),
                 ),
-                const Center(
+                Center(
                   child: Text(
                     'Login',
-                    style: TextStyle(
+                    style: MyTextStyle.headingLarge.copyWith(
                       color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
                     ),
                   ),
                 ),
@@ -67,10 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       : null,
                   decoration: InputDecoration(
                     hintText: 'Email',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
+                    hintStyle: MyTextStyle.bodyMedium.copyWith(
+                      color: MyColors.textTertiary,
                     ),
                     filled: true,
                     fillColor: Colors.white,
@@ -78,11 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         vertical: 18.0, horizontal: 16.0),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF95A8BD)),
+                      borderSide: const BorderSide(color: Colors.transparent),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green),
+                      borderSide: const BorderSide(color: MyColors.primaryLight, width: 2),
                     ),
                     disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -101,16 +99,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       : null,
                   decoration: InputDecoration(
                     hintText: 'Password',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
+                    hintStyle: MyTextStyle.bodyMedium.copyWith(
+                      color: MyColors.textTertiary,
                     ),
                     errorText: passwordError,
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureText ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.grey[700],
+                        color: MyColors.textSecondary,
                       ),
                       onPressed: () {
                         setState(() {
@@ -124,11 +120,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         vertical: 18.0, horizontal: 16.0),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF95A8BD)),
+                      borderSide: const BorderSide(color: Colors.transparent),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.green),
+                      borderSide: const BorderSide(color: MyColors.primaryLight, width: 2),
                     ),
                     disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -142,9 +138,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: const Color(0xFFDFF6DD),
+                      backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     onPressed: () async {
@@ -175,16 +171,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 24,
                             width: 24,
                             child: CircularProgressIndicator(
-                              color: Colors.green,
+                              color: MyColors.primaryColor,
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Login',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF005A32),
-                              fontSize: 16,
+                            style: MyTextStyle.labelLarge.copyWith(
+                              color: MyColors.primaryColor,
                             ),
                           ),
                   ),
