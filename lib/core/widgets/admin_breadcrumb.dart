@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 
 /// Model to represent a breadcrumb item in the navigation hierarchy
 class BreadcrumbItem {
@@ -214,6 +216,13 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedActions = <Widget>[
+      const AdminModeIndicator(),
+      const AdminModeQuickToggle(),
+      GlobalHomeButton(),
+      ...?actions,
+    ];
+
     return AppBar(
       leading: leading,
       title: AdminBreadcrumb(
@@ -230,7 +239,7 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       ),
-      actions: actions,
+      actions: resolvedActions,
       toolbarHeight: preferredSize.height,
     );
   }

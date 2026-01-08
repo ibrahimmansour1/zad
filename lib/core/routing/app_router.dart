@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/features/admin/supabase_test_screen.dart';
+import 'package:zad_aldaia/features/admin/ui/recycle_bin_screen.dart';
 import 'package:zad_aldaia/features/articles/ui/article_form_screen.dart';
 import 'package:zad_aldaia/features/articles/ui/articles_screen.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
@@ -14,7 +15,6 @@ import 'package:zad_aldaia/features/items/ui/item_form_screen.dart';
 import 'package:zad_aldaia/features/items/ui/items_screen.dart';
 import 'package:zad_aldaia/features/items/ui/search_screen.dart';
 import 'package:zad_aldaia/features/languages/admin_languages_screen.dart';
-import 'package:zad_aldaia/features/languages/languages_screen.dart';
 import 'package:zad_aldaia/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:zad_aldaia/features/onboarding/presentation/screens/user_type_screen.dart';
 
@@ -64,7 +64,11 @@ class AppRouter {
       case MyRoutes.items:
         return MaterialPageRoute(
             builder: (context) => ItemsScreen(
-                articleId: arguments["id"], title: arguments["title"]));
+                articleId: arguments["id"],
+                title: arguments["title"],
+                scrollToItemId: arguments["scrollToItemId"],
+                highlightQuery: arguments["highlightQuery"],
+            ));
       case MyRoutes.searchScreen:
         return MaterialPageRoute(builder: (context) => SearchScreen());
 
@@ -75,6 +79,9 @@ class AppRouter {
       case MyRoutes.supabaseTest:
         return MaterialPageRoute(
             builder: (context) => const SupabaseTestScreen());
+      case MyRoutes.recycleBin:
+        return MaterialPageRoute(
+            builder: (context) => const RecycleBinScreen());
       default:
         return null;
     }

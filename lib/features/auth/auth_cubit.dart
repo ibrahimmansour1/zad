@@ -1,6 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
+import 'package:zad_aldaia/services/admin_auth_service.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/admin_permission_service.dart';
 
 /// Authentication state classes
 abstract class AuthState {}
@@ -119,6 +123,11 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     try {
       await supabase.auth.signOut();
+      if (getIt.isRegistered<AdminAuthService>()) {
+        await getIt<AdminAuthService>().logout();
+        getIt<AdminPermissionService>().clearCache();
+        await getIt<AdminModeService>().enableUserMode();
+      }
       emit(AuthUnauthenticated());
     } catch (e) {
       emit(AuthError('Error signing out: $e'));

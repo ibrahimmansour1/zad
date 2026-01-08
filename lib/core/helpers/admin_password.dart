@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
+import 'package:zad_aldaia/core/helpers/admin_permissions.dart';
+import 'package:zad_aldaia/services/admin_permission_service.dart';
 
 /// Admin password constants for different operations
 class AdminPasswords {
@@ -6,131 +9,23 @@ class AdminPasswords {
   static const String path = 'ZAD2442_path';
   static const String category = 'ZAD2442_category';
   static const String subcategory = 'ZAD_subcategory';
-  static const String article = 'ZAD_article';
-  static const String item = 'ZAD_item';
+  static const String article = 'zad';
+  static const String item = 'zad';
 }
 
 class AdminPasswordDialog {
   static Future<bool> verify({
     required BuildContext context,
-    required String requiredPassword,
+    required AdminPermission permission,
     required String operationType,
     String? itemName,
   }) async {
-    final passwordController = TextEditingController();
-    bool obscurePassword = true;
-    String? errorMessage;
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.lock, color: Colors.red.shade700),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Admin Verification',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'You are about to $operationType${itemName != null ? ' "$itemName"' : ''}.',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Please enter the admin password to continue:',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade800,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Admin Password',
-                  hintText: 'Enter password',
-                  errorText: errorMessage,
-                  prefixIcon: const Icon(Icons.password),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      obscurePassword ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() => obscurePassword = !obscurePassword);
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                onSubmitted: (_) {
-                  if (passwordController.text == requiredPassword) {
-                    Navigator.of(context).pop(true);
-                  } else {
-                    setState(() => errorMessage = 'Incorrect password');
-                  }
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (passwordController.text == requiredPassword) {
-                  Navigator.of(context).pop(true);
-                } else {
-                  setState(() => errorMessage = 'Incorrect password');
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Verify',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return getIt<AdminPermissionService>().verifyPermission(
+      context,
+      permission,
+      operationType: operationType,
+      itemName: itemName,
     );
-
-    return result ?? false;
   }
 
   /// Verify for delete language operation
@@ -138,8 +33,19 @@ class AdminPasswordDialog {
       BuildContext context, String? languageName) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.language,
+      permission: AdminPermission.deleteLanguage,
       operationType: 'delete this language',
+      itemName: languageName,
+    );
+  }
+
+  /// Verify for edit language operation
+  static Future<bool> verifyEditLanguage(
+      BuildContext context, String? languageName) {
+    return verify(
+      context: context,
+      permission: AdminPermission.editLanguage,
+      operationType: 'edit this language',
       itemName: languageName,
     );
   }
@@ -148,8 +54,26 @@ class AdminPasswordDialog {
   static Future<bool> verifyAddLanguage(BuildContext context) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.language,
+      permission: AdminPermission.addLanguage,
       operationType: 'add a new language',
+    );
+  }
+
+  static Future<bool> verifyAddPath(BuildContext context, String? languageName) {
+    return verify(
+      context: context,
+      permission: AdminPermission.addPath,
+      operationType: 'add a new path',
+      itemName: languageName,
+    );
+  }
+
+  static Future<bool> verifyEditPath(BuildContext context, String? pathName) {
+    return verify(
+      context: context,
+      permission: AdminPermission.editPath,
+      operationType: 'edit this path',
+      itemName: pathName,
     );
   }
 
@@ -157,7 +81,7 @@ class AdminPasswordDialog {
   static Future<bool> verifyDeletePath(BuildContext context, String? pathName) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.path,
+      permission: AdminPermission.deletePath,
       operationType: 'delete this path',
       itemName: pathName,
     );
@@ -168,8 +92,28 @@ class AdminPasswordDialog {
       BuildContext context, String? categoryName) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.category,
+      permission: AdminPermission.deleteCategory,
       operationType: 'delete this category',
+      itemName: categoryName,
+    );
+  }
+
+  static Future<bool> verifyAddCategory(
+      BuildContext context, String? parentName) {
+    return verify(
+      context: context,
+      permission: AdminPermission.addCategory,
+      operationType: 'add a new category',
+      itemName: parentName,
+    );
+  }
+
+  static Future<bool> verifyEditCategory(
+      BuildContext context, String? categoryName) {
+    return verify(
+      context: context,
+      permission: AdminPermission.editCategory,
+      operationType: 'edit this category',
       itemName: categoryName,
     );
   }
@@ -179,7 +123,7 @@ class AdminPasswordDialog {
       BuildContext context, String? subcategoryName) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.subcategory,
+      permission: AdminPermission.deleteSubcategory,
       operationType: 'delete this subcategory',
       itemName: subcategoryName,
     );
@@ -190,7 +134,7 @@ class AdminPasswordDialog {
       BuildContext context, String? articleName) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.article,
+      permission: AdminPermission.deleteArticle,
       operationType: 'delete this article',
       itemName: articleName,
     );
@@ -200,7 +144,7 @@ class AdminPasswordDialog {
   static Future<bool> verifyDeleteItem(BuildContext context, String? itemName) {
     return verify(
       context: context,
-      requiredPassword: AdminPasswords.item,
+      permission: AdminPermission.deleteItem,
       operationType: 'delete this item',
       itemName: itemName,
     );

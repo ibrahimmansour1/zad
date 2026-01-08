@@ -6,13 +6,14 @@ import 'package:zad_aldaia/core/helpers/Language.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/categories/ui/CategorySelectionScreen.dart';
 import 'package:zad_aldaia/features/upload/image_upload.dart';
 
-class CategoryFormScreen extends StatefulWidget
- {
+class CategoryFormScreen extends StatefulWidget {
   final String? categoryId;
 
   const CategoryFormScreen({super.key, this.categoryId});
@@ -23,7 +24,8 @@ class CategoryFormScreen extends StatefulWidget
   State<CategoryFormScreen> createState() => _CategoryFormScreenState();
 }
 
-class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTickerProviderStateMixin {
+class _CategoryFormScreenState extends State<CategoryFormScreen>
+    with SingleTickerProviderStateMixin {
   late final CategoriesCubit store;
   Category category = Category(id: '');
   final _formKey = GlobalKey<FormState>();
@@ -41,26 +43,26 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
     if (widget.isEditMode) {
       store.loadCategory({'id': widget.categoryId!});
     }
-    
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.5, curve: Curves.easeInOut),
       ),
     );
-    
+
     _slideAnimation = Tween<double>(begin: 30.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
       ),
     );
-    
+
     _controller.forward();
   }
 
@@ -87,7 +89,8 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
     if (state is SavedState) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Category ${widget.isEditMode ? "updated" : "created"} successfully!'),
+          content: Text(
+              'Category ${widget.isEditMode ? "updated" : "created"} successfully!'),
           backgroundColor: Colors.green.shade700,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -97,9 +100,9 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
       );
       if ((parentCategory?.id ?? category.parentId) != null) {
         Navigator.of(context).pushNamed(
-          MyRoutes.categories, 
+          MyRoutes.categories,
           arguments: {
-            "id": parentCategory?.id ?? category.parentId, 
+            "id": parentCategory?.id ?? category.parentId,
             "title": parentCategory?.title
           },
         );
@@ -122,7 +125,7 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
 
   Future<void> _selectParentCategory() async {
     final Category? result = await Navigator.push<Category?>(
-      context, 
+      context,
       MaterialPageRoute(
         builder: (context) => CategorySelectionScreen(forArticles: false),
         settings: const RouteSettings(name: 'Select Parent Category'),
@@ -177,6 +180,11 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
             );
           },
         ),
+        actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
+        ],
       ),
       body: BlocProvider(
         create: (context) => store,
@@ -350,8 +358,8 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
                         parentCategory?.title ?? '(Top Level)',
                         style: GoogleFonts.exo(
                           fontSize: 16,
-                          color: parentCategory != null 
-                              ? Colors.grey.shade800 
+                          color: parentCategory != null
+                              ? Colors.grey.shade800
                               : Colors.grey.shade500,
                         ),
                       ),
@@ -400,7 +408,8 @@ class _CategoryFormScreenState extends State<CategoryFormScreen> with SingleTick
               children: [
                 Icon(
                   _isActive ? Icons.check_circle : Icons.remove_circle,
-                  color: _isActive ? Colors.green.shade700 : Colors.red.shade400,
+                  color:
+                      _isActive ? Colors.green.shade700 : Colors.red.shade400,
                 ),
                 const SizedBox(width: 12),
                 Text(

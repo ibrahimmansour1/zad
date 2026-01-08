@@ -69,4 +69,34 @@ class ItemsCubit extends Cubit<ItemsState> {
       String id1, String id2, int index1, int index2) async {
     return await _repo.swapItemsOrder(id1, id2, index1, index2);
   }
+
+  /// Move an item up in display order (atomic operation)
+  Future<bool> moveItemUp(String itemId, String articleId) async {
+    try {
+      final success = await _repo.moveItemUp(itemId, articleId);
+      if (success) {
+        // Reload to get fresh data
+        await loadItems(eqMap: {'article_id': articleId});
+      }
+      return success;
+    } catch (e) {
+      emit(ErrorState(e.toString()));
+      return false;
+    }
+  }
+
+  /// Move an item down in display order (atomic operation)
+  Future<bool> moveItemDown(String itemId, String articleId) async {
+    try {
+      final success = await _repo.moveItemDown(itemId, articleId);
+      if (success) {
+        // Reload to get fresh data
+        await loadItems(eqMap: {'article_id': articleId});
+      }
+      return success;
+    } catch (e) {
+      emit(ErrorState(e.toString()));
+      return false;
+    }
+  }
 }

@@ -13,10 +13,20 @@ import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/items/data/repos/items_repo.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';
 import 'package:zad_aldaia/features/upload/upload_cubit.dart';
+import 'package:zad_aldaia/services/admin_auth_service.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/admin_permission_service.dart';
 import 'package:zad_aldaia/services/auth_service.dart';
 import 'package:zad_aldaia/services/block_service.dart';
+import 'package:zad_aldaia/services/content_clipboard_service.dart';
+import 'package:zad_aldaia/services/content_ordering_service.dart';
+import 'package:zad_aldaia/services/content_paste_service.dart';
 import 'package:zad_aldaia/services/content_service.dart';
+import 'package:zad_aldaia/services/global_navigation_service.dart';
+import 'package:zad_aldaia/services/image_management_service.dart';
 import 'package:zad_aldaia/services/post_service.dart';
+import 'package:zad_aldaia/services/reference_service.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 import 'package:zad_aldaia/services/storage_service.dart';
 
 final getIt = GetIt.instance;
@@ -37,6 +47,32 @@ Future<void> setupGetIt() async {
   getIt.registerLazySingleton<BlockService>(() => BlockService());
   getIt.registerLazySingleton<ContentService>(() => ContentService());
   getIt.registerLazySingleton<StorageService>(() => StorageService());
+
+  // Admin services
+  getIt.registerSingleton<GlobalNavigationService>(GlobalNavigationService());
+  getIt.registerSingleton<AdminAuthService>(AdminAuthService());
+  getIt.registerSingleton<AdminModeService>(AdminModeService());
+  getIt.registerSingleton<AdminPermissionService>(AdminPermissionService());
+  getIt.registerSingleton<ImageManagementService>(ImageManagementService());
+  getIt.registerSingleton<ContentClipboardService>(ContentClipboardService());
+  getIt.registerSingleton<ContentOrderingService>(ContentOrderingService());
+  getIt.registerSingleton<ReferenceService>(ReferenceService());
+  getIt.registerSingleton<ContentPasteService>(
+    ContentPasteService(getIt<ContentClipboardService>()),
+  );
+  getIt.registerSingleton<SoftDeleteService>(
+    SoftDeleteService(imageService: getIt<ImageManagementService>()),
+  );
+
+  // Initialize admin services
+  await getIt<AdminAuthService>().initialize();
+  await getIt<AdminModeService>().initialize();
+
+  // If admin session is gone, do not allow stale admin mode
+  if (!getIt<AdminAuthService>().isAdminLoggedIn &&
+      getIt<AdminModeService>().isAdminMode) {
+    await getIt<AdminModeService>().enableUserMode();
+  }
 
   // Cubits and repos
   getIt.registerFactory<AuthCubit>(

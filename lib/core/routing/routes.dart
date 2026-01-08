@@ -12,4 +12,5 @@ class MyRoutes {
   static const searchScreen = "/searchScreen";
   static const sectionScreen = "/sectionScreen";
   static const supabaseTest = "/supabaseTest";
+  static const recycleBin = "/recycleBin";
 }

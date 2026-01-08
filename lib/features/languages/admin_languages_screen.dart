@@ -7,6 +7,8 @@ import 'package:zad_aldaia/core/widgets/admin_breadcrumb.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/upload/image_upload.dart';
+import 'package:zad_aldaia/services/content_ordering_service.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 class AdminLanguagesScreen extends StatefulWidget {
   const AdminLanguagesScreen({super.key});
@@ -17,6 +19,10 @@ class AdminLanguagesScreen extends StatefulWidget {
 
 class _AdminLanguagesScreenState extends State<AdminLanguagesScreen> {
   late final CategoriesCubit cubit = getIt<CategoriesCubit>();
+  final _orderingService = getIt<ContentOrderingService>();
+  final _softDeleteService = getIt<SoftDeleteService>();
+  List<Category> _localLanguages = [];
+  bool _useLocalOrder = false;
 
   @override
   void initState() {
@@ -191,6 +197,12 @@ class _AdminLanguagesScreenState extends State<AdminLanguagesScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final allowed = await AdminPasswordDialog.verifyEditLanguage(
+                  context,
+                  language.title,
+                );
+                if (!allowed) return;
+
                 if (nameController.text.trim().isNotEmpty) {
                   await _updateLanguage(
                     language.id,
@@ -294,24 +306,26 @@ class _AdminLanguagesScreenState extends State<AdminLanguagesScreen> {
 
     if (confirm == true) {
       try {
-        await Supabase.instance.client
-            .from('languages')
-            .delete()
-            .eq('id', language.id);
+        // Try soft delete first; if table lacks columns, fallback to hard delete
+        await _softDeleteService.softDelete(id: language.id, tableName: 'languages');
+      } catch (e) {
+        try {
+          await Supabase.instance.client
+              .from('languages')
+              .delete()
+              .eq('id', language.id);
+        } catch (_) {
+          rethrow;
+        }
+      }
 
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Language "${language.title}" deleted!')),
         );
-
-        cubit.getChildCategories(null);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting language: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
+
+      cubit.getChildCategories(null);
     }
   }
 
@@ -341,6 +355,13 @@ class _AdminLanguagesScreenState extends State<AdminLanguagesScreen> {
             }
 
             if (state is ListLoadedState) {
+              if (!_useLocalOrder) {
+                _localLanguages = List<Category>.from(state.items);
+              }
+
+              final isAdmin = Supabase.instance.client.auth.currentUser != null;
+              final items = _useLocalOrder ? _localLanguages : state.items;
+
               if (state.items.isEmpty) {
                 return Center(
                   child: Column(
@@ -369,51 +390,62 @@ class _AdminLanguagesScreenState extends State<AdminLanguagesScreen> {
                 );
               }
 
-              return ListView.builder(
+              if (!isAdmin) {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => _buildLanguageTile(
+                    items[index],
+                    index: index,
+                    showDragHandle: false,
+                  ),
+                );
+              }
+
+              return ReorderableListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: state.items.length,
+                itemCount: items.length,
+                buildDefaultDragHandles: false,
+                onReorder: (oldIndex, newIndex) async {
+                  // Adjust for removal when moving downwards
+                  if (newIndex > oldIndex) newIndex -= 1;
+
+                  setState(() {
+                    _useLocalOrder = true;
+                    final moved = _localLanguages.removeAt(oldIndex);
+                    _localLanguages.insert(newIndex, moved);
+                  });
+
+                  try {
+                    await _orderingService.reorderItems(
+                      itemIds: _localLanguages.map((e) => e.id).toList(),
+                      tableName: 'languages',
+                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Order saved')),
+                      );
+                    }
+                  } catch (e) {
+                    setState(() => _useLocalOrder = false);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Reorder failed: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    cubit.getChildCategories(null);
+                  }
+                },
                 itemBuilder: (context, index) {
-                  final language = state.items[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: _buildLanguageAvatar(language),
-                      title: Text(
-                        language.title ?? 'Unknown',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text('${language.childrenCount} paths'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showEditLanguageDialog(language),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              language.isActive
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: language.isActive
-                                  ? Colors.green
-                                  : Colors.grey,
-                            ),
-                            onPressed: () async {
-                              await Supabase.instance.client
-                                  .from('languages')
-                                  .update({'is_active': !language.isActive}).eq(
-                                      'id', language.id);
-                              cubit.getChildCategories(null);
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteLanguage(language),
-                          ),
-                        ],
-                      ),
-                    ),
+                  final language = items[index];
+                  return _buildLanguageTile(
+                    language,
+                    key: ValueKey(language.id),
+                    index: index,
+                    showDragHandle: true,
                   );
                 },
               );
@@ -450,6 +482,64 @@ class _AdminLanguagesScreenState extends State<AdminLanguagesScreen> {
             ? (language.title ?? '?')[0].toUpperCase()
             : '?',
         style: const TextStyle(color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildLanguageTile(
+    Category language, {
+    Key? key,
+    int? index,
+    bool showDragHandle = false,
+  }) {
+    return Card(
+      key: key,
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: _buildLanguageAvatar(language),
+        title: Text(
+          language.title ?? 'Unknown',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text('${language.childrenCount} paths'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _showEditLanguageDialog(language),
+            ),
+            IconButton(
+              icon: Icon(
+                language.isActive ? Icons.visibility : Icons.visibility_off,
+                color: language.isActive ? Colors.green : Colors.grey,
+              ),
+              onPressed: () async {
+                final allowed = await AdminPasswordDialog.verifyEditLanguage(
+                    context, language.title);
+                if (!allowed) return;
+
+                await Supabase.instance.client
+                    .from('languages')
+                    .update({'is_active': !language.isActive}).eq(
+                        'id', language.id);
+                cubit.getChildCategories(null);
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _deleteLanguage(language),
+            ),
+            if (showDragHandle && index != null)
+              ReorderableDragStartListener(
+                index: index,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(Icons.drag_handle),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

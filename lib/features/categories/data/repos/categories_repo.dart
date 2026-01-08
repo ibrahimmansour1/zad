@@ -471,4 +471,155 @@ class CategoriesRepo {
       return false;
     }
   }
+
+  /// Move a category up in display order (atomic operation)
+  Future<bool> moveCategoryUp(String categoryId, String? parentId) async {
+    try {
+      final tableName = await _findTableForId(categoryId);
+      final parentField = _getParentIdField(tableName);
+
+      // Get current category's display order
+      final currentResult = await _supabase
+          .from(tableName)
+          .select('display_order')
+          .eq('id', categoryId)
+          .single();
+
+      final currentOrder = currentResult['display_order'] as int? ?? 0;
+
+      // Build query with filters before order/limit
+      var filterQuery = _supabase
+          .from(tableName)
+          .select('id, display_order')
+          .lt('display_order', currentOrder)
+          .neq('is_deleted', true);
+
+      // Apply parent filter if applicable
+      if (tableName != 'languages' && parentId != null) {
+        filterQuery = filterQuery.eq(parentField, parentId);
+      }
+
+      // Apply order and limit
+      final aboveItems =
+          await filterQuery.order('display_order', ascending: false).limit(1);
+
+      if (aboveItems.isEmpty) {
+        print('[CategoriesRepo] Already at top');
+        return false;
+      }
+
+      final aboveItem = aboveItems.first;
+      final aboveOrder = aboveItem['display_order'] as int;
+      final aboveId = aboveItem['id'] as String;
+
+      // Atomic swap using temporary value
+      await _atomicSwapOrder(
+          tableName, categoryId, currentOrder, aboveId, aboveOrder);
+
+      print('✅ Category $categoryId moved up in $tableName');
+      return true;
+    } catch (e) {
+      print('[CategoriesRepo] Error moving up: $e');
+      return false;
+    }
+  }
+
+  /// Move a category down in display order (atomic operation)
+  Future<bool> moveCategoryDown(String categoryId, String? parentId) async {
+    try {
+      final tableName = await _findTableForId(categoryId);
+      final parentField = _getParentIdField(tableName);
+
+      // Get current category's display order
+      final currentResult = await _supabase
+          .from(tableName)
+          .select('display_order')
+          .eq('id', categoryId)
+          .single();
+
+      final currentOrder = currentResult['display_order'] as int? ?? 0;
+
+      // Build query with filters before order/limit
+      var filterQuery = _supabase
+          .from(tableName)
+          .select('id, display_order')
+          .gt('display_order', currentOrder)
+          .neq('is_deleted', true);
+
+      // Apply parent filter if applicable
+      if (tableName != 'languages' && parentId != null) {
+        filterQuery = filterQuery.eq(parentField, parentId);
+      }
+
+      // Apply order and limit
+      final belowItems =
+          await filterQuery.order('display_order', ascending: true).limit(1);
+
+      if (belowItems.isEmpty) {
+        print('[CategoriesRepo] Already at bottom');
+        return false;
+      }
+
+      final belowItem = belowItems.first;
+      final belowOrder = belowItem['display_order'] as int;
+      final belowId = belowItem['id'] as String;
+
+      // Atomic swap using temporary value
+      await _atomicSwapOrder(
+          tableName, categoryId, currentOrder, belowId, belowOrder);
+
+      print('✅ Category $categoryId moved down in $tableName');
+      return true;
+    } catch (e) {
+      print('[CategoriesRepo] Error moving down: $e');
+      return false;
+    }
+  }
+
+  /// Atomic swap using temporary value to avoid constraint conflicts
+  Future<void> _atomicSwapOrder(
+    String tableName,
+    String id1,
+    int order1,
+    String id2,
+    int order2,
+  ) async {
+    const tempOrder = -999;
+
+    // 1. Move first item to temp
+    await _supabase
+        .from(tableName)
+        .update({'display_order': tempOrder}).eq('id', id1);
+
+    // 2. Move second item to first's order
+    await _supabase
+        .from(tableName)
+        .update({'display_order': order1}).eq('id', id2);
+
+    // 3. Move first item to second's order
+    await _supabase
+        .from(tableName)
+        .update({'display_order': order2}).eq('id', id1);
+  }
+
+  /// Get next display order for a new item
+  Future<int> getNextDisplayOrder(String tableName, String? parentId) async {
+    try {
+      final parentField = _getParentIdField(tableName);
+      var filterQuery = _supabase.from(tableName).select('display_order');
+
+      // Apply parent filter before order/limit
+      if (tableName != 'languages' && parentId != null) {
+        filterQuery = filterQuery.eq(parentField, parentId);
+      }
+
+      final result =
+          await filterQuery.order('display_order', ascending: false).limit(1);
+
+      if (result.isEmpty) return 0;
+      return (result.first['display_order'] ?? -1) + 1;
+    } catch (e) {
+      return 0;
+    }
+  }
 }

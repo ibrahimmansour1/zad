@@ -7,9 +7,13 @@ import 'package:zad_aldaia/core/helpers/language.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
 import 'package:zad_aldaia/features/auth/auth_cubit.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/import/json_import_screen.dart';
+import 'package:zad_aldaia/services/admin_auth_service.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/admin_permission_service.dart';
 import 'package:zad_aldaia/services/backup_service.dart';
 import 'package:zad_aldaia/services/offline_content_service.dart';
 
@@ -25,6 +29,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final authCubit = getIt<AuthCubit>();
   final cubit = getIt<CategoriesCubit>();
+  final adminAuth = getIt<AdminAuthService>();
+  final adminMode = getIt<AdminModeService>();
+  final adminPermissionService = getIt<AdminPermissionService>();
   int _selectedIndex = 1;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -64,15 +71,29 @@ class _HomeScreenState extends State<HomeScreen> {
         : 'assets/images/png/muslim_icon.png';
 
     return Container(
-      decoration: const BoxDecoration(
-        color: MyColors.primaryColor,
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            MyColors.primaryColor,
+            MyColors.primaryDark,
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(32),
           bottomRight: Radius.circular(32),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: MyColors.primaryColor.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
         child: SafeArea(
           bottom: false,
           child: Row(
@@ -84,27 +105,52 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Assalam Alakum 👋🏼',
-                      style: MyTextStyle.headingLarge.copyWith(
+                      'Assalam Alakum 👋',
+                      style: MyTextStyle.displaySmall.copyWith(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       'Welcome Back!',
-                      style: MyTextStyle.bodyMedium.copyWith(
-                        color: Colors.white70,
+                      style: MyTextStyle.bodyLarge.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 16),
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.white,
-                backgroundImage: AssetImage(avatarImage),
+              Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 3,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.white,
+                      backgroundImage: AssetImage(avatarImage),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const AdminModeIndicator(),
+                ],
               ),
             ],
           ),
@@ -344,9 +390,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         const SizedBox(height: 30),
 
-                        // Only show Account Settings if user is logged in
-                        if (Supabase.instance.client.auth.currentUser !=
-                            null) ...[
+                        // Only show Account Settings if admin is logged in
+                        if (adminAuth.isAdminLoggedIn) ...[
                           const Text(
                             'Admin Settings',
                             style: TextStyle(
@@ -370,6 +415,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Column(
                               children: [
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  child: AdminModeToggle(),
+                                ),
+                                const Divider(height: 1),
                                 ListTile(
                                   leading: Icon(Icons.language,
                                       color: Colors.green.shade700),
@@ -449,11 +500,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       style: TextStyle(color: Colors.red)),
                                   onTap: () async {
                                     Navigator.of(sheetContext).pop();
+                                    await adminAuth.logout();
+                                    adminPermissionService.clearCache();
+                                    await adminMode.enableUserMode();
                                     await Supabase.instance.client.auth
                                         .signOut();
                                     Navigator.of(rootContext)
                                         .pushNamedAndRemoveUntil(
-                                      MyRoutes.onboarding,
+                                      MyRoutes.usertype,
                                       (route) => false,
                                     );
                                   },

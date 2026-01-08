@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
 import 'package:zad_aldaia/services/auth_service.dart';
 import 'package:zad_aldaia/services/content_service.dart';
@@ -259,6 +261,9 @@ class _SupabaseTestScreenState extends State<SupabaseTestScreen> {
         backgroundColor: const Color(0xFF005A32),
         foregroundColor: Colors.white,
         actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _testing ? null : _runAllTests,

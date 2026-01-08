@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zad_aldaia/core/supabase_client.dart';
 import 'package:zad_aldaia/features/articles/data/models/article.dart';
 import 'package:zad_aldaia/features/articles/data/repos/articles_repo.dart';
 
@@ -10,12 +11,36 @@ class ArticlesCubit extends Cubit<ArticlesState> {
 
   List<Article> articles = [];
 
+  /// Load content statistics (text, image, video counts) for an article
+  Future<void> _loadArticleContentStats(Article article) async {
+    try {
+      final items = await Supa.client
+          .from('article_items')
+          .select()
+          .eq('article_id', article.id)
+          .neq('is_deleted', true)
+          .timeout(const Duration(seconds: 10));
+
+      article.textCount =
+          (items as List).where((i) => i['type'] == 'text').length;
+      article.imageCount =
+          (items as List).where((i) => i['type'] == 'image').length;
+      article.videoCount =
+          (items as List).where((i) => i['type'] == 'video').length;
+    } catch (e) {
+      print('Error loading content stats for article ${article.id}: $e');
+      // Continue with default values (0) if stats loading fails
+    }
+  }
+
   Future saveArticle(Article article) async {
-    // print("id: ${article.id}");
-    // print(article.toFormJson());
     try {
       emit(SavingState());
       if (article.id.isEmpty) {
+        // Get next display order for new article
+        if (article.categoryId != null) {
+          article.displayOrder = await _repo.getNextDisplayOrder(article.categoryId!);
+        }
         await _repo.insertArticle(article.toFormJson());
       } else {
         await _repo.updateArticle(article.id, article.toFormJson());
@@ -30,6 +55,12 @@ class ArticlesCubit extends Cubit<ArticlesState> {
     try {
       emit(LoadingState());
       articles = (await searchArticles(eqMap));
+      
+      // Load content statistics for each article
+      for (var article in articles) {
+        await _loadArticleContentStats(article);
+      }
+      
       final isOffline = articles.isNotEmpty && articles.any((a) => a.isOffline);
       emit(ListLoadedState(articles, isOffline: isOffline));
     } catch (e) {
@@ -57,5 +88,15 @@ class ArticlesCubit extends Cubit<ArticlesState> {
 
   Future<List<Article>> searchArticles(Map<String, dynamic> eqMap) async {
     return await _repo.searchArticles(eqMap);
+  }
+
+  /// Move article up in the list
+  Future<bool> moveArticleUp(String articleId, String categoryId) async {
+    return await _repo.moveArticleUp(articleId, categoryId);
+  }
+
+  /// Move article down in the list
+  Future<bool> moveArticleDown(String articleId, String categoryId) async {
+    return await _repo.moveArticleDown(articleId, categoryId);
   }
 }

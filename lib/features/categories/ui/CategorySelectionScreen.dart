@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 
@@ -31,6 +33,9 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
         title: Text("Select Category"),
         centerTitle: true,
         actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
           if (breadcrumb.isNotEmpty)
             IconButton(
               onPressed: () {

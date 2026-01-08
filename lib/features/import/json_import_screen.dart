@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
 
 /// A screen for importing JSON data with custom field mapping
@@ -409,6 +411,11 @@ class _JsonImportScreenState extends State<JsonImportScreen> {
         title: const Text('Import JSON Data'),
         backgroundColor: const Color(0xFF005A32),
         foregroundColor: Colors.white,
+        actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

@@ -14,6 +14,7 @@ import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/firebase_options.dart';
 import 'package:zad_aldaia/generated/l10n.dart';
 import 'package:zad_aldaia/services/block_service.dart';
+import 'package:zad_aldaia/services/global_navigation_service.dart';
 
 /// Key for storing whether user has completed onboarding
 const String kHasOnboardedKey = 'has_onboarded';
@@ -158,6 +159,7 @@ class MyApp extends StatelessWidget {
           splitScreenMode: true,
           builder: (context, child) {
             return MaterialApp(
+              navigatorKey: GlobalNavigationService.navigatorKey,
               debugShowCheckedModeBanner: false,
               initialRoute: initialRoute,
               onGenerateRoute: AppRouter().generateRoutes,
@@ -220,7 +222,8 @@ class MyApp extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: MyColors.primaryColor,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -230,8 +233,10 @@ class MyApp extends StatelessWidget {
                 outlinedButtonTheme: OutlinedButtonThemeData(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: MyColors.primaryColor,
-                    side: const BorderSide(color: MyColors.primaryColor, width: 1.5),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    side: const BorderSide(
+                        color: MyColors.primaryColor, width: 1.5),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -240,14 +245,16 @@ class MyApp extends StatelessWidget {
                 textButtonTheme: TextButtonThemeData(
                   style: TextButton.styleFrom(
                     foregroundColor: MyColors.primaryColor,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
                   ),
                 ),
                 // TextField Theme
                 inputDecorationTheme: InputDecorationTheme(
                   filled: true,
                   fillColor: MyColors.offWhite,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: MyColors.offWhite),
@@ -258,7 +265,8 @@ class MyApp extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: MyColors.primaryColor, width: 2),
+                    borderSide: const BorderSide(
+                        color: MyColors.primaryColor, width: 2),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -266,7 +274,8 @@ class MyApp extends StatelessWidget {
                   ),
                   focusedErrorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: MyColors.errorColor, width: 2),
+                    borderSide:
+                        const BorderSide(color: MyColors.errorColor, width: 2),
                   ),
                   labelStyle: TextStyle(
                     color: MyColors.textSecondary,

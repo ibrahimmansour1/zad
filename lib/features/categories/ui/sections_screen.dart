@@ -6,9 +6,9 @@ import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/auth/auth_cubit.dart';
+import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/categories/ui/AddNewCategoryCard.dart';
-import 'package:zad_aldaia/features/categories/ui/category_grid_widget.dart';
 
 class SectionsScreen extends StatefulWidget {
   const SectionsScreen({super.key});
@@ -45,7 +45,8 @@ class _SectionsScreenState extends State<SectionsScreen> {
             if (state is LoadingState) {
               return const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
                 ),
               );
             }
@@ -72,27 +73,41 @@ class _SectionsScreenState extends State<SectionsScreen> {
                         ],
                       ),
                     ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child: Text(
-                      'Explore Islamic Knowledge',
-                      style: MyTextStyle.displaySmall,
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Explore Islamic Knowledge',
+                          style: MyTextStyle.displaySmall.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Select a language to continue',
+                          style: MyTextStyle.bodyMedium.copyWith(
+                            color: MyColors.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   Expanded(
                     child: GridView.builder(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(16),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.0,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
                       ),
                       physics: const AlwaysScrollableScrollPhysics(),
-                      shrinkWrap: true,
                       itemCount: state.items.length +
                           (Supabase.instance.client.auth.currentUser != null
                               ? 1
@@ -107,45 +122,12 @@ class _SectionsScreenState extends State<SectionsScreen> {
                                 ? index - 1
                                 : index;
                         final item = state.items[adjustedIndex];
-                        return CategoryGridWidget(
-                          category: item,
-                          itemCount: item.childrenCount,
-                          onDeleted: () => loadData(),
-                          onTap: () {
-                            if (item.childrenCount > 0) {
-                              Navigator.of(context)
-                                  .pushNamed(MyRoutes.categories, arguments: {
-                                "category_id": item.id,
-                                "title": item.title
-                              });
-                            } else {
-                              Navigator.of(context).pushNamed(MyRoutes.articles,
-                                  arguments: {
-                                    "category_id": item.id,
-                                    "title": item.title
-                                  });
-                            }
-                          },
-                          onMoveUp: (category) async {
-                            if (adjustedIndex > 0) {
-                              await cubit.swapCategoriesOrder(
-                                  id1: item.id,
-                                  id2: state.items[adjustedIndex - 1].id,
-                                  index1: adjustedIndex,
-                                  index2: adjustedIndex - 1);
-                              loadData();
-                            }
-                          },
-                          onMoveDown: (category) async {
-                            if (adjustedIndex < state.items.length - 1) {
-                              await cubit.swapCategoriesOrder(
-                                  id1: item.id,
-                                  id2: state.items[adjustedIndex + 1].id,
-                                  index1: adjustedIndex,
-                                  index2: adjustedIndex + 1);
-                              loadData();
-                            }
-                          },
+                        return _buildLanguageCard(
+                          context,
+                          item,
+                          adjustedIndex,
+                          state.items,
+                          cubit,
                         );
                       },
                     ),
@@ -155,6 +137,155 @@ class _SectionsScreenState extends State<SectionsScreen> {
             }
             return Center(child: Text('STATE: ${state.runtimeType}'));
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageCard(
+    BuildContext context,
+    Category item,
+    int adjustedIndex,
+    List<Category> items,
+    CategoriesCubit cubit,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        if (item.childrenCount > 0) {
+          Navigator.of(context).pushNamed(
+            MyRoutes.categories,
+            arguments: {"category_id": item.id, "title": item.title},
+          );
+        } else {
+          Navigator.of(context).pushNamed(
+            MyRoutes.articles,
+            arguments: {"category_id": item.id, "title": item.title},
+          );
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: MyColors.surfaceColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: MyColors.primaryColor.withOpacity(0.15),
+              blurRadius: 12,
+              spreadRadius: 0,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Image section
+            Expanded(
+              flex: 3,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      MyColors.primaryColor.withOpacity(0.1),
+                      MyColors.primaryLight.withOpacity(0.08),
+                    ],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    if (item.image != null && item.image!.isNotEmpty)
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
+                          child: item.image!.startsWith('http')
+                              ? Image.network(
+                                  item.image!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildFallbackIcon(),
+                                )
+                              : Image.asset(
+                                  item.image!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildFallbackIcon(),
+                                ),
+                        ),
+                      )
+                    else
+                      _buildFallbackIcon(),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(20),
+                            topRight: Radius.circular(20),
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.15),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Content section
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Center(
+                  child: Text(
+                    item.title ?? '-',
+                    style: MyTextStyle.headingSmall.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackIcon() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            MyColors.primaryColor.withOpacity(0.15),
+            MyColors.primaryLight.withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.language,
+          size: 48,
+          color: MyColors.primaryColor.withOpacity(0.5),
         ),
       ),
     );

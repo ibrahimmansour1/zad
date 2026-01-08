@@ -1,5 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
+import 'package:zad_aldaia/services/admin_auth_service.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/admin_permission_service.dart';
 
 /// Service for managing authentication
 /// Handles sign up, sign in, sign out, and auth state
@@ -48,6 +52,12 @@ class AuthService {
   Future<void> signOut() async {
     try {
       await Supa.client.auth.signOut();
+
+      if (getIt.isRegistered<AdminAuthService>()) {
+        await getIt<AdminAuthService>().logout();
+        getIt<AdminPermissionService>().clearCache();
+        await getIt<AdminModeService>().enableUserMode();
+      }
     } catch (e) {
       throw Exception('Sign out failed: $e');
     }

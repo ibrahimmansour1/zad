@@ -4,10 +4,13 @@ import 'package:zad_aldaia/core/di/dependency_injection.dart'; // For getIt
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/articles/data/models/article.dart'; // Assuming your Article model
 import 'package:zad_aldaia/features/articles/logic/articles_cubit.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
-import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart' as C;
+import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart'
+    as C;
 import 'package:zad_aldaia/features/categories/ui/CategorySelectionScreen.dart';
 
 class ArticleFormScreen extends StatefulWidget {
@@ -15,7 +18,8 @@ class ArticleFormScreen extends StatefulWidget {
   final String? categoryId;
   final String? categoryTitle;
 
-  const ArticleFormScreen({super.key, this.articleId, this.categoryId, this.categoryTitle});
+  const ArticleFormScreen(
+      {super.key, this.articleId, this.categoryId, this.categoryTitle});
 
   bool get isEditMode => articleId != null;
 
@@ -49,9 +53,14 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
 
   listener(context, state) {
     if (state is SavedState) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Article ${widget.isEditMode ? "updated" : "created"} successfully!')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'Article ${widget.isEditMode ? "updated" : "created"} successfully!')));
       if ((article?.categoryId ?? category?.id) != null) {
-        Navigator.of(context).pushNamed(MyRoutes.articles, arguments: {"category_id": article?.categoryId ?? category?.id, "title": category?.title});
+        Navigator.of(context).pushNamed(MyRoutes.articles, arguments: {
+          "category_id": article?.categoryId ?? category?.id,
+          "title": category?.title
+        });
       }
     }
     if (state is LoadedState) {
@@ -59,7 +68,8 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
       fillForm();
     }
     if (state is ErrorState) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.error)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(state.error)));
     }
   }
 
@@ -72,7 +82,10 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
   }
 
   Future<void> _selectCategory() async {
-    final Category? result = await Navigator.push<Category?>(context, MaterialPageRoute(builder: (context) => CategorySelectionScreen(forArticles: true)));
+    final Category? result = await Navigator.push<Category?>(
+        context,
+        MaterialPageRoute(
+            builder: (context) => CategorySelectionScreen(forArticles: true)));
 
     if (result != null) {
       setParent(result);
@@ -114,6 +127,11 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
           style: MyTextStyle.headingMedium.copyWith(color: Colors.white),
         ),
         backgroundColor: MyColors.primaryColor,
+        actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
+        ],
       ),
       body: BlocProvider(
         create: (context) => store,
@@ -149,7 +167,8 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _titleController,
-                        decoration: const InputDecoration(labelText: 'Article Title *'),
+                        decoration:
+                            const InputDecoration(labelText: 'Article Title *'),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Please enter a article title';
@@ -161,7 +180,8 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
                       if (state is SavingState)
                         const Center(
                           child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                MyColors.primaryColor),
                           ),
                         )
                       else
@@ -170,7 +190,9 @@ class _ArticleFormScreenState extends State<ArticleFormScreen> {
                           child: ElevatedButton(
                             onPressed: _submitForm,
                             child: Text(
-                              widget.isEditMode ? 'Update Article' : 'Create Article',
+                              widget.isEditMode
+                                  ? 'Update Article'
+                                  : 'Create Article',
                             ),
                           ),
                         ),

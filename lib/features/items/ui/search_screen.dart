@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/storage.dart';
+import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
-import 'package:zad_aldaia/core/theming/my_colors.dart';
-import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/core/widgets/highlighted_text.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';
@@ -475,124 +474,127 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSearchResultItem(Item item) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title with highlighting
-            if (item.title != null && item.title!.isNotEmpty)
-              HighlightedText(
-                text: item.title!,
-                searchQuery: query,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+    return GestureDetector(
+      onTap: () {
+        // Navigate to ItemsScreen with scroll-to-item parameters
+        Navigator.of(context).pushNamed(
+          MyRoutes.items,
+          arguments: {
+            'id': item.articleId,
+            'title': item.articleId, // Will be updated with actual title from route
+            'scrollToItemId': item.id,
+            'highlightQuery': query,
+          },
+        );
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title with highlighting
+              if (item.title != null && item.title!.isNotEmpty)
+                HighlightedText(
+                  text: item.title!,
+                  searchQuery: query,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-              ),
 
-            const SizedBox(height: 8),
-
-            // Content with highlighting
-            if (item.content != null && item.content!.isNotEmpty)
-              HighlightedText(
-                text: item.content!,
-                searchQuery: query,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
-                ),
-                maxLines: 5,
-              ),
-
-            // Note with highlighting
-            if (item.note != null && item.note!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.yellow.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.yellow.shade200),
-                ),
-                child: HighlightedText(
-                  text: item.note!,
+
+              // Content with highlighting
+              if (item.content != null && item.content!.isNotEmpty)
+                HighlightedText(
+                  text: item.content!,
                   searchQuery: query,
                   style: TextStyle(
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey.shade600,
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
                   ),
+                  maxLines: 5,
                 ),
-              ),
-            ],
 
-            // Image
-            if (item.type == ItemType.image && item.imageUrl != null) ...[
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  item.imageUrl!,
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 100,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.image_not_supported),
+              // Note with highlighting
+              if (item.note != null && item.note!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.yellow.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.yellow.shade200),
+                  ),
+                  child: HighlightedText(
+                    text: item.note!,
+                    searchQuery: query,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ),
-              ),
+              ],
+
+              // Image
+              if (item.type == ItemType.image && item.imageUrl != null) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    item.imageUrl!,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 100,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.image_not_supported),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () => Storage.download(item.imageUrl!),
+                  icon: const Icon(Icons.download, size: 18),
+                  label: const Text('Download Image'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF005A32),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+
+              // Item type badge
               const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: () => Storage.download(item.imageUrl!),
-                icon: const Icon(Icons.download, size: 18),
-                label: const Text('Download Image'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF005A32),
-                  foregroundColor: Colors.white,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  item.type.name.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
                 ),
               ),
             ],
-
-            // Item type badge
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getTypeColor(item.type).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                item.type.name.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: _getTypeColor(item.type),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
-  }
-
-  Color _getTypeColor(ItemType type) {
-    switch (type) {
-      case ItemType.text:
-        return Colors.blue;
-      case ItemType.image:
-        return Colors.green;
-      case ItemType.video:
-        return Colors.red;
-    }
   }
 }

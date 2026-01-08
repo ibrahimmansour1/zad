@@ -10,7 +10,7 @@ class ContentService {
       final response = await Supa.client
           .from('languages')
           .select()
-          .order('created_at', ascending: false);
+          .order('display_order', ascending: true);
 
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
@@ -25,7 +25,7 @@ class ContentService {
           .from('paths')
           .select()
           .eq('language_id', languageId)
-          .order('created_at', ascending: false);
+          .order('display_order', ascending: true);
 
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
@@ -40,7 +40,7 @@ class ContentService {
           .from('sections')
           .select()
           .eq('path_id', pathId)
-          .order('created_at', ascending: false);
+          .order('display_order', ascending: true);
 
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
@@ -55,7 +55,7 @@ class ContentService {
           .from('branches')
           .select()
           .eq('section_id', sectionId)
-          .order('created_at', ascending: false);
+          .order('display_order', ascending: true);
 
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {
@@ -70,7 +70,7 @@ class ContentService {
           .from('topics')
           .select()
           .eq('branch_id', branchId)
-          .order('created_at', ascending: false);
+          .order('display_order', ascending: true);
 
       return List<Map<String, dynamic>>.from(response as List);
     } catch (e) {

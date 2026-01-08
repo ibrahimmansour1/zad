@@ -18,6 +18,9 @@ class ItemsRepo {
         query = query.eq(element.key, element.value);
       }
 
+      // Exclude soft-deleted items
+      query = query.neq('is_deleted', true);
+
       // Apply like filters with OR logic for searching across multiple fields
       if (likeMap.isNotEmpty) {
         final searchQuery = likeMap.values.first; // Get the search term
@@ -27,7 +30,7 @@ class ItemsRepo {
       }
 
       final response = await query
-          .order('order', ascending: true)
+          .order('display_order', ascending: true)
           .timeout(const Duration(seconds: 10));
       final items =
           (response as List).map<Item>((item) => Item.fromJson(item)).toList();
@@ -108,21 +111,163 @@ class ItemsRepo {
         .timeout(Duration(seconds: 30));
   }
 
+  /// Move item up in the list (swap with previous item)
+  /// Returns true if successful, false if already at top
+  Future<bool> moveItemUp(String itemId, String articleId) async {
+    try {
+      // Fetch all items for this article, ordered
+      final items = await _supabase
+          .from('article_items')
+          .select('id, display_order')
+          .eq('article_id', articleId)
+          .neq('is_deleted', true)
+          .order('display_order', ascending: true);
+
+      final currentIndex = items.indexWhere((i) => i['id'] == itemId);
+
+      if (currentIndex <= 0) {
+        print('Item is already at top');
+        return false;
+      }
+
+      final currentItem = items[currentIndex];
+      final previousItem = items[currentIndex - 1];
+
+      // Swap order values
+      await _atomicSwapOrder(
+        id1: itemId,
+        order1: previousItem['display_order'] ?? (currentIndex - 1),
+        id2: previousItem['id'],
+        order2: currentItem['display_order'] ?? currentIndex,
+      );
+
+      print('✅ Item moved up successfully');
+      return true;
+    } catch (e) {
+      print('Error moving item up: $e');
+      return false;
+    }
+  }
+
+  /// Move item down in the list (swap with next item)
+  /// Returns true if successful, false if already at bottom
+  Future<bool> moveItemDown(String itemId, String articleId) async {
+    try {
+      // Fetch all items for this article, ordered
+      final items = await _supabase
+          .from('article_items')
+          .select('id, display_order')
+          .eq('article_id', articleId)
+          .neq('is_deleted', true)
+          .order('display_order', ascending: true);
+
+      final currentIndex = items.indexWhere((i) => i['id'] == itemId);
+
+      if (currentIndex < 0 || currentIndex >= items.length - 1) {
+        print('Item is already at bottom');
+        return false;
+      }
+
+      final currentItem = items[currentIndex];
+      final nextItem = items[currentIndex + 1];
+
+      // Swap order values
+      await _atomicSwapOrder(
+        id1: itemId,
+        order1: nextItem['display_order'] ?? (currentIndex + 1),
+        id2: nextItem['id'],
+        order2: currentItem['display_order'] ?? currentIndex,
+      );
+
+      print('✅ Item moved down successfully');
+      return true;
+    } catch (e) {
+      print('Error moving item down: $e');
+      return false;
+    }
+  }
+
+  /// Atomic swap of two items' order values
+  Future<void> _atomicSwapOrder({
+    required String id1,
+    required int order1,
+    required String id2,
+    required int order2,
+  }) async {
+    // Use a temporary value to avoid any potential conflicts
+    const tempOrder = -999;
+
+    // Step 1: Move first item to temp
+    await _supabase
+        .from('article_items')
+        .update({'display_order': tempOrder}).eq('id', id1);
+
+    // Step 2: Move second item to first's position
+    await _supabase
+        .from('article_items')
+        .update({'display_order': order2}).eq('id', id2);
+
+    // Step 3: Move first item to second's position
+    await _supabase
+        .from('article_items')
+        .update({'display_order': order1}).eq('id', id1);
+  }
+
+  /// Legacy swap method - kept for backwards compatibility
+  /// @deprecated Use moveItemUp or moveItemDown instead
   Future<bool> swapItemsOrder(
       String id1, String id2, int index1, int index2) async {
     try {
-      await _supabase
+      // Fetch actual order values from database
+      final item1 = await _supabase
           .from('article_items')
-          .update({'order': index2}).eq('id', id1);
-      await _supabase
+          .select('display_order')
+          .eq('id', id1)
+          .single();
+
+      final item2 = await _supabase
           .from('article_items')
-          .update({'order': index1}).eq('id', id2);
+          .select('display_order')
+          .eq('id', id2)
+          .single();
+
+      final order1 = item1['display_order'] ?? index1;
+      final order2 = item2['display_order'] ?? index2;
+
+      await _atomicSwapOrder(
+        id1: id1,
+        order1: order2, // Swap!
+        id2: id2,
+        order2: order1, // Swap!
+      );
 
       print('✅ Orders swapped between ID $id1 and ID $id2');
       return true;
     } catch (e) {
       print('Error swapping article item orders: $e');
       return false;
+    }
+  }
+
+  /// Get the next order value for a new item
+  Future<int> getNextOrder(String articleId) async {
+    try {
+      final result = await _supabase
+          .from('article_items')
+          .select('display_order')
+          .eq('article_id', articleId)
+          .neq('is_deleted', true)
+          .order('display_order', ascending: false)
+          .limit(1);
+
+      if (result.isEmpty) {
+        return 0;
+      }
+
+      return (result.first['display_order'] ?? -1) + 1;
+    } catch (e) {
+      print('Error getting next order: $e');
+      return 0;
     }
   }
 }

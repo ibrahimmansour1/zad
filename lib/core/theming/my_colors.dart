@@ -32,4 +32,3 @@ class MyColors {
   // Legacy colors (kept for compatibility)
   static const darkGold = Color(0xFF996515);
 }
-

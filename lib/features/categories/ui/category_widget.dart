@@ -5,6 +5,7 @@ import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 class CategoryWidget extends StatelessWidget {
   final Category category;
@@ -200,10 +201,18 @@ class CategoryWidget extends StatelessWidget {
     if (confirm == true) {
       try {
         final tableName = section.isNotEmpty ? section : 'categories';
-        await Supabase.instance.client
-            .from(tableName)
-            .delete()
-            .eq('id', category.id);
+        // Prefer soft delete; fallback to hard delete if schema lacks flags
+        try {
+          await SoftDeleteService().softDelete(
+            id: category.id,
+            tableName: tableName,
+          );
+        } catch (_) {
+          await Supabase.instance.client
+              .from(tableName)
+              .delete()
+              .eq('id', category.id);
+        }
         onDeleted?.call();
       } catch (e) {
         if (context.mounted) {

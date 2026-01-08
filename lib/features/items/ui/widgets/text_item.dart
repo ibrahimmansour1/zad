@@ -95,39 +95,36 @@ class _TextItemState extends State<TextItem> {
     }
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
+      // margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: bgColor != null
           ? BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(12),
             )
           : null,
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: bgColor != null ? 0 : 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          title: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.copy, color: MyColors.primaryColor),
-                onPressed: _copyToClipboard,
-                tooltip: 'Copy',
-              ),
-              Expanded(
-                child: Text(
-                  widget.item.title ?? 'Text Content',
-                  style: MyTextStyle.headingSmall.copyWith(
-                    color: MyColors.primaryColor,
-                  ),
+      child: ExpansionTile(
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Text(
+                widget.item.title ?? 'Text Content',
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: MyTextStyle.headingSmall.copyWith(
+                  color: MyColors.primaryColor,
                 ),
               ),
-            ],
-          ),
-          children: [
+            ),
+            IconButton(
+              icon: const Icon(Icons.copy, color: MyColors.primaryColor),
+              onPressed: _copyToClipboard,
+              tooltip: 'Copy',
+            ),
+          ],
+        ),
+        children: [
           if (widget.item.note != null && widget.item.note!.isNotEmpty) ...[
             Container(
               width: double.infinity,
@@ -174,7 +171,6 @@ class _TextItemState extends State<TextItem> {
           ),
           _buildActionBar(),
         ],
-        ),
       ),
     );
   }
@@ -198,12 +194,14 @@ class _TextItemState extends State<TextItem> {
             children: [
               if (Supabase.instance.client.auth.currentUser != null) ...[
                 IconButton(
-                  icon: const Icon(Icons.arrow_upward, color: MyColors.primaryColor),
+                  icon: const Icon(Icons.arrow_upward,
+                      color: MyColors.primaryColor),
                   onPressed: () => widget.onItemUp?.call(widget.item),
                   tooltip: 'Move up',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.arrow_downward, color: MyColors.primaryColor),
+                  icon: const Icon(Icons.arrow_downward,
+                      color: MyColors.primaryColor),
                   onPressed: () => widget.onItemDown?.call(widget.item),
                   tooltip: 'Move down',
                 ),

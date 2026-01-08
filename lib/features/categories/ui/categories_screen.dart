@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/core/widgets/admin_breadcrumb.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
@@ -49,6 +51,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(widget.title ?? 'Categories'),
         actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
           if (Supabase.instance.client.auth.currentUser != null)
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
@@ -92,24 +97,22 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               return Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.9,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                  ),
+                child: ListView.builder(
                   itemCount: state.items.length,
                   itemBuilder: (context, index) {
                     final item = state.items[index];
-                    return _buildCategoryCard(item, index, state.items);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _buildCategoryCard(item, index, state.items),
+                    );
                   },
                 ),
               );
             } else if (state is LoadingState) {
               return const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
                 ),
               );
             } else if (state is ErrorState) {
@@ -147,192 +150,173 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 
   Widget _buildCategoryCard(Category item, int index, List<Category> items) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.green.shade200.withOpacity(0.5),
-            blurRadius: 10,
-            spreadRadius: 2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.white,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            if (item.childrenCount > 0) {
-              Navigator.of(context).pushNamed(
-                MyRoutes.categories,
-                arguments: {"category_id": item.id, "title": item.title},
-              );
-            } else {
-              Navigator.of(context).pushNamed(
-                MyRoutes.articles,
-                arguments: {"category_id": item.id, "title": item.title},
-              );
-            }
-          },
-          splashColor: Colors.green.shade100,
-          highlightColor: Colors.green.shade50,
-          child: Stack(
+    return GestureDetector(
+      onTap: () {
+        if (item.childrenCount > 0) {
+          Navigator.of(context).pushNamed(
+            MyRoutes.categories,
+            arguments: {"category_id": item.id, "title": item.title},
+          );
+        } else {
+          Navigator.of(context).pushNamed(
+            MyRoutes.articles,
+            arguments: {"category_id": item.id, "title": item.title},
+          );
+        }
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: MyColors.surfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: MyColors.primaryColor.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
             children: [
-              // Background with subtle gradient
+              // Icon container
               Container(
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Colors.green.shade50,
-                      Colors.white,
+                      MyColors.primaryColor.withOpacity(0.2),
+                      MyColors.primaryLight.withOpacity(0.15),
                     ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Icon(
+                    item.childrenCount > 0
+                        ? Icons.folder_outlined
+                        : Icons.article_outlined,
+                    color: MyColors.primaryColor,
+                    size: 32,
                   ),
                 ),
               ),
-
+              const SizedBox(width: 16),
               // Content
-              Padding(
-                padding: const EdgeInsets.all(16.0),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF005A32).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        item.childrenCount > 0 ? Icons.folder : Icons.article,
-                        color: const Color(0xFF005A32),
-                        size: 28,
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
                     Text(
                       item.title ?? 'Untitled',
-                      style: const TextStyle(
+                      style: MyTextStyle.headingSmall.copyWith(
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                        fontFamily: 'Exo',
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-
-                    const Spacer(),
-
-                    // Item count badge
+                    const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 10,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF005A32),
-                        borderRadius: BorderRadius.circular(12),
+                        color: MyColors.primaryColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${item.childrenCount > 0 ? item.childrenCount : item.articlesCount} items',
-                        style: const TextStyle(
+                        style: MyTextStyle.labelSmall.copyWith(
+                          color: MyColors.primaryColor,
+                          fontWeight: FontWeight.w700,
                           fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               if (Supabase.instance.client.auth.currentUser != null)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.black54),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: const [
-                            Icon(Icons.edit, color: Colors.blue),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: const [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'move_up',
-                        enabled: index > 0,
-                        child: Row(
-                          children: const [
-                            Icon(Icons.arrow_upward, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('Move Up'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: 'move_down',
-                        enabled: index < items.length - 1,
-                        child: Row(
-                          children: const [
-                            Icon(Icons.arrow_downward, color: Colors.green),
-                            SizedBox(width: 8),
-                            Text('Move Down'),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) async {
-                      if (value == 'edit') {
-                        Navigator.of(context).pushNamed(
-                          MyRoutes.addCategoryScreen,
-                          arguments: {"id": item.id},
-                        );
-                      } else if (value == 'delete') {
-                        await _deleteCategory(item);
-                      } else if (value == 'move_up' && index > 0) {
-                        await cubit.swapCategoriesOrder(
-                          id1: item.id,
-                          id2: items[index - 1].id,
-                          index1: index,
-                          index2: index - 1,
-                        );
-                        loadData();
-                      } else if (value == 'move_down' &&
-                          index < items.length - 1) {
-                        await cubit.swapCategoriesOrder(
-                          id1: item.id,
-                          id2: items[index + 1].id,
-                          index1: index,
-                          index2: index + 1,
-                        );
-                        loadData();
-                      }
-                    },
+                PopupMenuButton<String>(
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 20,
+                    color: MyColors.textSecondary,
                   ),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit,
+                              size: 18, color: MyColors.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Edit', style: MyTextStyle.bodySmall),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'move_up',
+                      enabled: index > 0,
+                      child: Row(
+                        children: [
+                          Icon(Icons.arrow_upward,
+                              size: 18, color: MyColors.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Move Up', style: MyTextStyle.bodySmall),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'move_down',
+                      enabled: index < items.length - 1,
+                      child: Row(
+                        children: [
+                          Icon(Icons.arrow_downward,
+                              size: 18, color: MyColors.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Move Down', style: MyTextStyle.bodySmall),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete,
+                              size: 18, color: MyColors.errorColor),
+                          const SizedBox(width: 8),
+                          Text('Delete',
+                              style: MyTextStyle.bodySmall
+                                  .copyWith(color: MyColors.errorColor)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      Navigator.of(context).pushNamed(
+                        MyRoutes.addCategoryScreen,
+                        arguments: {"id": item.id},
+                      );
+                    } else if (value == 'delete') {
+                      await _deleteCategory(item);
+                    } else if (value == 'move_up' && index > 0) {
+                      // Use atomic move operation
+                      await cubit.moveCategoryUp(item.id, widget.parentId);
+                    } else if (value == 'move_down' &&
+                        index < items.length - 1) {
+                      // Use atomic move operation
+                      await cubit.moveCategoryDown(item.id, widget.parentId);
+                    }
+                  },
                 ),
             ],
           ),

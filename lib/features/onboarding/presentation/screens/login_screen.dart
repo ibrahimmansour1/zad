@@ -4,6 +4,8 @@ import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/auth/auth_cubit.dart';
+import 'package:zad_aldaia/services/admin_auth_service.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,6 +16,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   late final AuthCubit authCubit = getIt<AuthCubit>();
+  late final AdminAuthService _adminAuthService = getIt<AdminAuthService>();
+  late final AdminModeService _adminModeService = getIt<AdminModeService>();
   final GlobalKey<FormState> adminPasswordFormKey = GlobalKey();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
@@ -38,7 +42,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: TextButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    label: const Text("Back", style: TextStyle(color: Colors.white)),
+                    label: const Text("Back",
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 Center(
@@ -80,7 +85,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: MyColors.primaryLight, width: 2),
+                      borderSide: const BorderSide(
+                          color: MyColors.primaryLight, width: 2),
                     ),
                     disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -124,7 +130,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: MyColors.primaryLight, width: 2),
+                      borderSide: const BorderSide(
+                          color: MyColors.primaryLight, width: 2),
                     ),
                     disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -148,17 +155,29 @@ class _LoginScreenState extends State<LoginScreen> {
                         setState(() {
                           checkingPassword = true;
                         });
-                        if (await authCubit.signIn(
-                          emailController.text,
-                          passwordController.text,
-                        )) {
-                          passwordError = null;
-                          Navigator.of(context).pushReplacementNamed(
-                            MyRoutes.homeScreen,
+                        try {
+                          final signedIn = await authCubit.signIn(
+                            emailController.text,
+                            passwordController.text,
                           );
-                        } else {
+
+                          if (signedIn) {
+                            passwordError = null;
+                            await _adminAuthService
+                                .login(emailController.text.trim());
+                            await _adminModeService.enableAdminMode();
+
+                            Navigator.of(context).pushReplacementNamed(
+                              MyRoutes.homeScreen,
+                            );
+                          } else {
+                            setState(() {
+                              passwordError = 'Wrong password';
+                            });
+                          }
+                        } catch (e) {
                           setState(() {
-                            passwordError = 'Wrong password';
+                            passwordError = 'Login failed: $e';
                           });
                         }
                         setState(() {

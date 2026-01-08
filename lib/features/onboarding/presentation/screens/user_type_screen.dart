@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
-import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:flutter/material.dart';
 import 'package:zad_aldaia/features/categories/ui/home_screen.dart';
 import 'package:zad_aldaia/features/onboarding/presentation/screens/login_screen.dart';
 
@@ -12,7 +11,7 @@ class UserTypeScreen extends StatefulWidget {
 }
 
 class _UserTypeScreenState extends State<UserTypeScreen> {
-  int _selectedIndex = 0; 
+  int _selectedIndex = 0;
 
   void _onSelect(int index) {
     setState(() => _selectedIndex = index);
@@ -97,11 +96,11 @@ class _UserTypeScreenState extends State<UserTypeScreen> {
                     ),
                   );
                 },
-                 openBuilder: (context, _) {
-                    return _selectedIndex == 0
-                        ? const HomeScreen()
-                        : const LoginScreen();
-                  },
+                openBuilder: (context, _) {
+                  return _selectedIndex == 0
+                      ? const HomeScreen()
+                      : const LoginScreen();
+                },
                 transitionDuration: const Duration(milliseconds: 600),
                 closedColor: Colors.transparent,
                 openColor: const Color(0xFFF0FAE6),
@@ -132,52 +131,97 @@ class _UserTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color borderColor = isSelected ? Colors.green.shade700 : Colors.grey.shade300;
-    final Color textColor = Colors.black;
-
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        height: 210,
-        width: 180,
-        padding: const EdgeInsets.all(16),
+        height: 220,
+        width: 160,
         decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 247, 247, 228),
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(color: borderColor, width: 2),
+          color: isSelected
+              ? const Color(0xFF005A32).withOpacity(0.08)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF005A32) : Colors.grey.shade200,
+            width: isSelected ? 2.5 : 1.5,
+          ),
           boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: Colors.green.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
+            BoxShadow(
+              color: isSelected
+                  ? const Color(0xFF005A32).withOpacity(0.15)
+                  : Colors.black.withOpacity(0.06),
+              blurRadius: isSelected ? 12 : 8,
+              offset: isSelected ? const Offset(0, 6) : const Offset(0, 2),
+            )
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(imagePath, height: 100, width: 100),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Exo',
-                color: textColor,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icon Container
+                  Container(
+                    height: 70,
+                    width: 70,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF005A32).withOpacity(0.1)
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Image.asset(
+                      imagePath,
+                      height: 50,
+                      width: 50,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Title
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Exo',
+                      color: Colors.black.withOpacity(0.9),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  // Description
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black.withOpacity(0.45),
+                      height: 1.4,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Spacer(),
+                  // Selection Indicator
+                  if (isSelected)
+                    Container(
+                      height: 4,
+                      width: 30,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF005A32),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    )
+                ],
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              description,
-              style: TextStyle(
-                fontSize: 12,
-                color: textColor.withOpacity(0.5),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
         ),
       ),
     );

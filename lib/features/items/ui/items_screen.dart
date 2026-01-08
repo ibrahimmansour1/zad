@@ -7,6 +7,8 @@ import 'package:zad_aldaia/core/helpers/storage.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';
 import 'package:zad_aldaia/features/items/ui/widgets/image_item.dart';
@@ -16,8 +18,16 @@ import 'package:zad_aldaia/features/items/ui/widgets/video_item.dart';
 class ItemsScreen extends StatefulWidget {
   final String? articleId;
   final String? title;
+  final String? scrollToItemId; // NEW: Item to scroll to after navigation
+  final String? highlightQuery; // NEW: Search query to highlight
 
-  const ItemsScreen({super.key, required this.articleId, this.title});
+  const ItemsScreen({
+    super.key,
+    required this.articleId,
+    this.title,
+    this.scrollToItemId,
+    this.highlightQuery,
+  });
 
   @override
   State<ItemsScreen> createState() => _ItemsScreenState();
@@ -46,6 +56,12 @@ class _ItemsScreenState extends State<ItemsScreen>
       setState(() {
         _shouldAnimate = true;
       });
+      // Handle scroll-to-item after data loads
+      if (widget.scrollToItemId != null) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _scrollToItem(widget.scrollToItemId!);
+        });
+      }
     });
   }
 
@@ -59,6 +75,37 @@ class _ItemsScreenState extends State<ItemsScreen>
     cubit.loadItems(
         eqMap: {'article_id': widget.articleId}
           ..removeWhere((key, value) => value == null));
+  }
+
+  /// Scrolls to a specific item after it's loaded
+  void _scrollToItem(String itemId) {
+    try {
+      // Find the item in the loaded items
+      final item = cubit.items.firstWhere(
+        (item) => item.id == itemId,
+        orElse: () => throw Exception('Item not found'),
+      );
+
+      // Determine which tab the item belongs to
+      int tabIndex = 0;
+      if (item.type == ItemType.image) {
+        tabIndex = 1;
+      } else if (item.type == ItemType.video) {
+        tabIndex = 2;
+      }
+
+      // Switch to the correct tab
+      if (_tabController.index != tabIndex) {
+        _tabController.animateTo(tabIndex);
+      }
+
+      // TODO: Scroll to item position in the list
+      // This would require passing a ScrollController to the ListView
+      // For now, the tab switch is sufficient to highlight the found item
+      print('Navigated to item: $itemId in tab: $tabIndex');
+    } catch (e) {
+      print('Error handling scroll to item: $e');
+    }
   }
 
   @override
@@ -94,6 +141,16 @@ class _ItemsScreenState extends State<ItemsScreen>
           ],
         ),
         actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
+          // Search button
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () => Navigator.of(context).pushNamed(
+              MyRoutes.searchScreen,
+            ),
+          ),
           if (selectedItems.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.share, color: Colors.white),
@@ -204,11 +261,11 @@ class _ItemsScreenState extends State<ItemsScreen>
               ],
             ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(top: 12, left: 8),
+                  margin: const EdgeInsets.only(top: 12, left: 8, right: 4),
                   decoration: BoxDecoration(
                     color: const Color(0xFF005A32).withOpacity(0.1),
                     shape: BoxShape.circle,
@@ -270,17 +327,34 @@ class _ItemsScreenState extends State<ItemsScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(top: 12, left: 8),
+                width: 44,
+                height: 44,
+                margin: const EdgeInsets.only(top: 12, left: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF005A32).withOpacity(0.1),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      MyColors.primaryColor,
+                      MyColors.primaryDark,
+                    ],
+                  ),
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: MyColors.primaryColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF005A32),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: MyTextStyle.labelLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -303,9 +377,9 @@ class _ItemsScreenState extends State<ItemsScreen>
           item: item,
           isSelected: selectedItems.contains(item),
           onSelect: (article) => _toggleItemSelection(article),
-          onItemUp: (item) => _swapItems(item.id, prevItemId, index, index - 1),
-          onItemDown: (item) =>
-              _swapItems(item.id, nextItemId, index, index + 1),
+          onItemUp: prevItemId != null ? (item) => _moveItemUp(item.id) : null,
+          onItemDown:
+              nextItemId != null ? (item) => _moveItemDown(item.id) : null,
           onDeleted: (_) => loadData(),
         );
       case ItemType.image:
@@ -313,9 +387,9 @@ class _ItemsScreenState extends State<ItemsScreen>
           item: item,
           isSelected: selectedItems.contains(item),
           onSelect: (article) => _toggleItemSelection(article),
-          onItemUp: (item) => _swapItems(item.id, prevItemId, index, index - 1),
-          onItemDown: (item) =>
-              _swapItems(item.id, nextItemId, index, index + 1),
+          onItemUp: prevItemId != null ? (item) => _moveItemUp(item.id) : null,
+          onItemDown:
+              nextItemId != null ? (item) => _moveItemDown(item.id) : null,
           onDownloadPressed: (url) => Storage.download(url),
           onDeleted: (_) => loadData(),
         );
@@ -324,9 +398,9 @@ class _ItemsScreenState extends State<ItemsScreen>
           item: item,
           isSelected: selectedItems.contains(item),
           onSelect: (article) => _toggleItemSelection(article),
-          onItemUp: (item) => _swapItems(item.id, prevItemId, index, index - 1),
-          onItemDown: (item) =>
-              _swapItems(item.id, nextItemId, index, index + 1),
+          onItemUp: prevItemId != null ? (item) => _moveItemUp(item.id) : null,
+          onItemDown:
+              nextItemId != null ? (item) => _moveItemDown(item.id) : null,
           onDeleted: (_) => loadData(),
         );
     }
@@ -342,11 +416,16 @@ class _ItemsScreenState extends State<ItemsScreen>
     });
   }
 
-  Future<void> _swapItems(String itemId, String? otherItemId, int currentIndex,
-      int newIndex) async {
-    if (otherItemId == null) return;
-    await cubit.swapItemsOrder(itemId, otherItemId, currentIndex, newIndex);
-    loadData();
+  /// Move item up using atomic operation
+  Future<void> _moveItemUp(String itemId) async {
+    if (widget.articleId == null) return;
+    await cubit.moveItemUp(itemId, widget.articleId!);
+  }
+
+  /// Move item down using atomic operation
+  Future<void> _moveItemDown(String itemId) async {
+    if (widget.articleId == null) return;
+    await cubit.moveItemDown(itemId, widget.articleId!);
   }
 }
 

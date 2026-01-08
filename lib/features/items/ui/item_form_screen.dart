@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';
 import 'package:zad_aldaia/features/upload/image_upload.dart';
@@ -114,7 +116,12 @@ class _ItemFormScreenState extends State<ItemFormScreen> {
     return Scaffold(
       appBar: AppBar(
           centerTitle: true,
-          title: Text(widget.isEditMode ? 'Edit Item' : 'Create New Item')),
+          title: Text(widget.isEditMode ? 'Edit Item' : 'Create New Item'),
+          actions: [
+            const AdminModeIndicator(),
+            const AdminModeQuickToggle(),
+            GlobalHomeButton(),
+          ]),
       body: BlocProvider(
         create: (context) => store,
         child: BlocListener<ItemsCubit, ItemsState>(

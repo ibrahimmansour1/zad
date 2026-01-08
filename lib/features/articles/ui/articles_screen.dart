@@ -5,6 +5,8 @@ import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/articles/logic/articles_cubit.dart';
 import 'package:zad_aldaia/features/articles/ui/widgets/article_item.dart';
 
@@ -76,6 +78,16 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
         backgroundColor: MyColors.primaryColor,
         elevation: 0,
         actions: [
+          const AdminModeIndicator(),
+          const AdminModeQuickToggle(),
+          GlobalHomeButton(),
+          // Search button
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () => Navigator.of(context).pushNamed(
+              MyRoutes.searchScreen,
+            ),
+          ),
           if (Supabase.instance.client.auth.currentUser != null)
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
@@ -96,7 +108,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
             if (state is LoadingState) {
               return const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(MyColors.primaryColor),
                 ),
               );
             }
@@ -160,22 +173,43 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   itemCount: state.items.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: ArticleItem(
-                      article: state.items[index],
-                      onPressed: (article) => Navigator.of(context).pushNamed(
-                        MyRoutes.items,
-                        arguments: {
-                          "id": article.id,
-                          "title": article.title,
+                  itemBuilder: (context, index) {
+                    final article = state.items[index];
+                    final isFirst = index == 0;
+                    final isLast = index == state.items.length - 1;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ArticleItem(
+                        article: article,
+                        isFirst: isFirst,
+                        isLast: isLast,
+                        onPressed: (article) => Navigator.of(context).pushNamed(
+                          MyRoutes.items,
+                          arguments: {
+                            "id": article.id,
+                            "title": article.title,
+                          },
+                        ),
+                        onDeleted: (article) {
+                          cubit
+                              .loadArticles({'category_id': widget.categoryId});
                         },
+                        onMoveUp: isFirst
+                            ? null
+                            : (article) async {
+                                await cubit.moveArticleUp(
+                                    article.id, widget.categoryId);
+                              },
+                        onMoveDown: isLast
+                            ? null
+                            : (article) async {
+                                await cubit.moveArticleDown(
+                                    article.id, widget.categoryId);
+                              },
                       ),
-                      onDeleted: (article) {
-                        cubit.loadArticles({'category_id': widget.categoryId});
-                      },
-                    ),
-                  ),
+                    );
+                  },
                 ),
               );
             }

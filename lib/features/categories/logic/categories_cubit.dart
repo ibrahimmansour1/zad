@@ -79,4 +79,34 @@ class CategoriesCubit extends Cubit<CategoriesState> {
       required int index2}) async {
     return await _repo.swapCategoriesOrder(id1, id2, index1, index2);
   }
+
+  /// Move a category up in display order (atomic operation)
+  Future<bool> moveCategoryUp(String categoryId, String? parentId) async {
+    try {
+      final success = await _repo.moveCategoryUp(categoryId, parentId);
+      if (success) {
+        // Reload to get fresh data
+        await getChildCategories(parentId);
+      }
+      return success;
+    } catch (e) {
+      emit(ErrorState(e.toString()));
+      return false;
+    }
+  }
+
+  /// Move a category down in display order (atomic operation)
+  Future<bool> moveCategoryDown(String categoryId, String? parentId) async {
+    try {
+      final success = await _repo.moveCategoryDown(categoryId, parentId);
+      if (success) {
+        // Reload to get fresh data
+        await getChildCategories(parentId);
+      }
+      return success;
+    } catch (e) {
+      emit(ErrorState(e.toString()));
+      return false;
+    }
+  }
 }
