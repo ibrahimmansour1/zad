@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/constants/db_constants.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
 import 'package:zad_aldaia/services/content_clipboard_service.dart';
 
@@ -97,27 +98,30 @@ class ContentPasteService {
     final newData = Map<String, dynamic>.from(content.data);
 
     // Remove old ID so new one is generated
-    newData.remove('id');
+    newData.remove(DbColumns.id);
+    
+    // Remove metadata fields that are not database columns
+    newData.remove('table');
 
     // Update parent reference
-    final parentField = _getParentFieldName(content.sourceType);
+    final parentField = DbSchemaMapper.getParentFieldName(content.sourceType);
     newData[parentField] = targetParentId;
 
     // Update title if custom title provided, otherwise add "(Copy)" suffix
-    final currentTitle = newData['title'] ?? newData['name'] ?? 'Unnamed';
-    newData['title'] = customTitle ?? '$currentTitle (Copy)';
-    if (newData.containsKey('name')) {
-      newData['name'] = customTitle ?? '${newData['name']} (Copy)';
+    final currentTitle = newData[DbColumns.title] ?? newData[DbColumns.name] ?? 'Unnamed';
+    newData[DbColumns.title] = customTitle ?? '$currentTitle (Copy)';
+    if (newData.containsKey(DbColumns.name)) {
+      newData[DbColumns.name] = customTitle ?? '${newData[DbColumns.name]} (Copy)';
     }
 
     // Reset metadata
-    newData['created_at'] = DateTime.now().toIso8601String();
-    newData['updated_at'] = DateTime.now().toIso8601String();
-    newData['is_active'] = true;
-    newData['is_deleted'] = false;
+    newData[DbColumns.createdAt] = DateTime.now().toIso8601String();
+    newData[DbColumns.updatedAt] = DateTime.now().toIso8601String();
+    newData[DbColumns.isActive] = true;
+    newData[DbColumns.isDeleted] = false;
 
     // Get next display order
-    final orderColumn = _getOrderColumn(targetTableName);
+    final orderColumn = DbSchemaMapper.getOrderColumn(targetTableName);
     newData[orderColumn] = await _getNextDisplayOrder(
       targetTableName,
       parentField,
@@ -138,7 +142,7 @@ class ContentPasteService {
     int totalItems = 1;
 
     // Recursively copy children if this is a hierarchical item
-    if (_hasChildren(content.sourceType)) {
+    if (DbSchemaMapper.hasChildren(content.sourceType)) {
       totalItems += await _deepCopyChildren(
         sourceId: content.sourceId,
         newParentId: newId,
@@ -161,30 +165,30 @@ class ContentPasteService {
     String? customTitle,
   }) async {
     // Create reference entry
-    final parentField = _getParentFieldName(content.sourceType);
+    final parentField = DbSchemaMapper.getParentFieldName(content.sourceType);
     final displayOrder =
         await _getNextReferenceOrder(targetParentId, targetTableName);
 
     final refData = {
-      'original_id': content.sourceId,
-      'original_table': _getTableNameForType(content.sourceType),
-      'parent_id': targetParentId,
-      'parent_table': targetTableName,
-      'parent_field': parentField,
-      'display_order': displayOrder,
-      'custom_title': customTitle,
-      'created_by': Supa.currentUser?.id,
-      'created_at': DateTime.now().toIso8601String(),
+      DbColumns.originalId: content.sourceId,
+      DbColumns.originalTable: DbSchemaMapper.getTableName(content.sourceType),
+      DbColumns.parentId: targetParentId,
+      DbColumns.parentTable: targetTableName,
+      DbColumns.parentField: parentField,
+      DbColumns.displayOrder: displayOrder,
+      DbColumns.customTitle: customTitle,
+      DbColumns.createdBy: Supa.currentUser?.id,
+      DbColumns.createdAt: DateTime.now().toIso8601String(),
     };
 
     final response =
-        await _supabase.from('content_references').insert(refData).select();
+        await _supabase.from(DbTables.contentReferences).insert(refData).select();
 
     if (response.isEmpty) {
       throw Exception('Failed to create reference');
     }
 
-    final refId = response.first['id'];
+    final refId = response.first[DbColumns.id];
     debugPrint('[Paste] Created reference: $refId');
 
     return PasteResult(
@@ -200,9 +204,9 @@ class ContentPasteService {
     required String targetParentId,
     required String targetTableName,
   }) async {
-    final parentField = _getParentFieldName(content.sourceType);
-    final tableName = _getTableNameForType(content.sourceType);
-    final orderColumn = _getOrderColumn(tableName);
+    final parentField = DbSchemaMapper.getParentFieldName(content.sourceType);
+    final tableName = DbSchemaMapper.getTableName(content.sourceType);
+    final orderColumn = DbSchemaMapper.getOrderColumn(tableName);
 
     // Get next display order in target
     final newOrder = await _getNextDisplayOrder(
@@ -215,8 +219,8 @@ class ContentPasteService {
     await _supabase.from(tableName).update({
       parentField: targetParentId,
       orderColumn: newOrder,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', content.sourceId);
+      DbColumns.updatedAt: DateTime.now().toIso8601String(),
+    }).eq(DbColumns.id, content.sourceId);
 
     debugPrint('[Paste] Moved ${content.sourceId} to new parent');
 
@@ -236,20 +240,20 @@ class ContentPasteService {
     required String newParentId,
     required String sourceType,
   }) async {
-    final childTableName = _getChildTableName(sourceType);
+    final childTableName = DbSchemaMapper.getChildTableName(sourceType);
     if (childTableName == null) return 0;
 
     debugPrint('[Paste] Deep copying children: $sourceType -> $childTableName');
 
     try {
-      final parentField = _getParentFieldName(sourceType);
+      final parentField = DbSchemaMapper.getParentFieldName(sourceType);
 
       // Fetch all children of the source (excluding deleted)
       final children = await _supabase
           .from(childTableName)
           .select()
           .eq(parentField, sourceId)
-          .neq('is_deleted', true);
+          .eq(DbColumns.isDeleted, false);
 
       debugPrint('[Paste] Found ${children.length} children to copy');
 
@@ -259,16 +263,16 @@ class ContentPasteService {
       for (int i = 0; i < children.length; i++) {
         final child = children[i];
         final childData = Map<String, dynamic>.from(child);
-        childData.remove('id');
+        childData.remove(DbColumns.id);
         childData[parentField] = newParentId;
 
         // Update metadata
-        childData['created_at'] = DateTime.now().toIso8601String();
-        childData['updated_at'] = DateTime.now().toIso8601String();
-        childData['is_deleted'] = false;
+        childData[DbColumns.createdAt] = DateTime.now().toIso8601String();
+        childData[DbColumns.updatedAt] = DateTime.now().toIso8601String();
+        childData[DbColumns.isDeleted] = false;
 
         // Set order based on position
-        final orderColumn = _getOrderColumn(childTableName);
+        final orderColumn = DbSchemaMapper.getOrderColumn(childTableName);
         childData[orderColumn] = i;
 
         // Insert child
@@ -277,13 +281,13 @@ class ContentPasteService {
 
         if (response.isNotEmpty) {
           totalCopied++;
-          final newChildId = response.first['id'];
+          final newChildId = response.first[DbColumns.id];
 
           // Determine child's source type for recursion
-          final childSourceType = _getSourceTypeForTable(childTableName);
+          final childSourceType = DbSchemaMapper.getContentType(childTableName);
           if (childSourceType != null) {
             totalCopied += await _deepCopyChildren(
-              sourceId: child['id'],
+              sourceId: child[DbColumns.id],
               newParentId: newChildId,
               sourceType: childSourceType,
             );
@@ -298,71 +302,8 @@ class ContentPasteService {
     }
   }
 
-  /// Get child table name for a given type
-  String? _getChildTableName(String type) {
-    return {
-      'language': 'paths',
-      'path': 'sections',
-      'section': 'branches',
-      'branch': 'topics',
-      'topic': 'content_items',
-      'article': 'article_items',
-    }[type];
-  }
-
-  /// Get parent field name for a given type
-  String _getParentFieldName(String type) {
-    return {
-          'language': 'language_id',
-          'path': 'path_id',
-          'section': 'section_id',
-          'branch': 'branch_id',
-          'topic': 'topic_id',
-          'article': 'article_id',
-        }[type] ??
-        'parent_id';
-  }
-
-  /// Get table name for a content type
-  String _getTableNameForType(String type) {
-    return {
-          'language': 'languages',
-          'path': 'paths',
-          'section': 'sections',
-          'branch': 'branches',
-          'topic': 'topics',
-          'article': 'articles',
-          'item': 'article_items',
-          'content_item': 'content_items',
-        }[type] ??
-        type;
-  }
-
-  /// Get source type for a table name
-  String? _getSourceTypeForTable(String tableName) {
-    return {
-      'paths': 'path',
-      'sections': 'section',
-      'branches': 'branch',
-      'topics': 'topic',
-      'content_items': 'content_item',
-      'article_items': 'item',
-    }[tableName];
-  }
-
-  /// Get order column name for a table
-  String _getOrderColumn(String tableName) {
-    if (tableName == 'article_items') {
-      return 'order';
-    }
-    return 'display_order';
-  }
-
-  /// Check if this type has children that should be copied
-  bool _hasChildren(String type) {
-    return ['language', 'path', 'section', 'branch', 'topic', 'article']
-        .contains(type);
-  }
+  // Note: All mapping methods have been moved to DbSchemaMapper in db_constants.dart
+  // to maintain consistency and prevent typos across the codebase.
 
   /// Get next display order for a new item
   Future<int> _getNextDisplayOrder(
@@ -371,7 +312,7 @@ class ContentPasteService {
     String parentId,
   ) async {
     try {
-      final orderColumn = _getOrderColumn(tableName);
+      final orderColumn = DbSchemaMapper.getOrderColumn(tableName);
       final result = await _supabase
           .from(tableName)
           .select(orderColumn)
@@ -391,15 +332,15 @@ class ContentPasteService {
       String parentId, String parentTable) async {
     try {
       final result = await _supabase
-          .from('content_references')
-          .select('display_order')
-          .eq('parent_id', parentId)
-          .eq('parent_table', parentTable)
-          .order('display_order', ascending: false)
+          .from(DbTables.contentReferences)
+          .select(DbColumns.displayOrder)
+          .eq(DbColumns.parentId, parentId)
+          .eq(DbColumns.parentTable, parentTable)
+          .order(DbColumns.displayOrder, ascending: false)
           .limit(1);
 
       if (result.isEmpty) return 0;
-      return (result.first['display_order'] ?? -1) + 1;
+      return (result.first[DbColumns.displayOrder] ?? -1) + 1;
     } catch (e) {
       return 0;
     }

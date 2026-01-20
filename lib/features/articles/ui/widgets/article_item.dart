@@ -5,8 +5,11 @@ import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/paste_content_dialog.dart';
 import 'package:zad_aldaia/features/articles/data/models/article.dart';
 import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/content_clipboard_service.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 class ArticleItem extends StatelessWidget {
   final Article article;
@@ -151,6 +154,31 @@ class ArticleItem extends StatelessWidget {
                       ),
                     ),
                     PopupMenuItem(
+                      value: 'copy',
+                      child: Row(
+                        children: [
+                          Icon(Icons.copy,
+                              size: 18, color: MyColors.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Copy', style: MyTextStyle.bodySmall),
+                        ],
+                      ),
+                    ),
+                    if (getIt<ContentClipboardService>().hasContent())
+                      PopupMenuItem(
+                        value: 'paste',
+                        child: Row(
+                          children: [
+                            Icon(Icons.content_paste,
+                                size: 18, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Text('Paste Here',
+                                style: MyTextStyle.bodySmall
+                                    .copyWith(color: Colors.green)),
+                          ],
+                        ),
+                      ),
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
@@ -173,6 +201,10 @@ class ArticleItem extends StatelessWidget {
                         MyRoutes.addArticleScreen,
                         arguments: {"id": article.id},
                       );
+                    } else if (value == 'copy') {
+                      _copyArticle(context);
+                    } else if (value == 'paste') {
+                      await _pasteContent(context);
                     } else if (value == 'delete') {
                       await _deleteArticle(context);
                     } else if (value == 'move_up') {
@@ -216,13 +248,14 @@ class ArticleItem extends StatelessWidget {
 
     if (confirm == true) {
       try {
-        await Supabase.instance.client
-            .from('articles')
-            .delete()
-            .eq('id', article.id);
+        final softDeleteService = getIt<SoftDeleteService>();
+        await softDeleteService.softDelete(
+          tableName: 'articles',
+          id: article.id,
+        );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"${article.title}" deleted successfully!')),
+          SnackBar(content: Text('"${article.title}" moved to Recycle Bin')),
         );
 
         onDeleted?.call(article);
@@ -234,6 +267,46 @@ class ArticleItem extends StatelessWidget {
           ),
         );
       }
+    }
+  }
+
+  void _copyArticle(BuildContext context) {
+    final clipboard = getIt<ContentClipboardService>();
+    clipboard.copy(
+      id: article.id,
+      type: 'article',
+      data: {
+        'title': article.title,
+        'category_id': article.categoryId,
+        'table': 'articles',
+      },
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${article.title}" copied to clipboard'),
+        action: SnackBarAction(
+          label: 'CLEAR',
+          onPressed: () => clipboard.clear(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pasteContent(BuildContext context) async {
+    final result = await PasteContentDialog.show(
+      context: context,
+      targetParentId: article.id,
+      targetTable: 'article_items',
+      targetTitle: article.title,
+    );
+
+    if (result != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Content pasted successfully!'),
+        ),
+      );
+      onDeleted?.call(article);
     }
   }
 

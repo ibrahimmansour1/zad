@@ -47,6 +47,11 @@ class _AdminModeToggleState extends State<AdminModeToggle> {
 
   @override
   Widget build(BuildContext context) {
+    // Only show toggle if admin is logged in
+    if (!_authService.isAdminLoggedIn) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -199,6 +204,11 @@ class _AdminModeQuickToggleState extends State<AdminModeQuickToggle> {
 
   @override
   Widget build(BuildContext context) {
+    // Only show toggle if admin is logged in
+    if (!_authService.isAdminLoggedIn) {
+      return const SizedBox.shrink();
+    }
+
     final isAdmin = _modeService.isAdminMode;
 
     return IconButton(
@@ -206,7 +216,8 @@ class _AdminModeQuickToggleState extends State<AdminModeQuickToggle> {
       onPressed: _toggleMode,
       icon: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
-        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+        transitionBuilder: (child, anim) =>
+            ScaleTransition(scale: anim, child: child),
         child: Icon(
           isAdmin ? Icons.admin_panel_settings : Icons.person,
           key: ValueKey(isAdmin),

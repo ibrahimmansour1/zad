@@ -105,6 +105,25 @@ class ItemsRepo {
   }
 
   Future insertItem(Map<String, dynamic> data) async {
+    // Get the max display_order for this article to append new item at the end
+    final articleId = data['article_id'];
+    if (articleId != null) {
+      final maxOrderResult = await _supabase
+          .from('article_items')
+          .select('display_order')
+          .eq('article_id', articleId)
+          .neq('is_deleted', true)
+          .order('display_order', ascending: false)
+          .limit(1);
+      
+      if (maxOrderResult.isNotEmpty) {
+        final maxOrder = maxOrderResult.first['display_order'] ?? 0;
+        data['display_order'] = maxOrder + 1;
+      } else {
+        data['display_order'] = 0;
+      }
+    }
+    
     await _supabase
         .from('article_items')
         .insert(data)

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/helpers/share.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/content_clipboard_service.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 class VideoItem extends StatefulWidget {
   final Item item;
@@ -147,7 +151,14 @@ class _VideoItemState extends State<VideoItem> {
           ),
           Row(
             children: [
-              if (Supabase.instance.client.auth.currentUser != null) ...[
+              if (Supabase.instance.client.auth.currentUser != null &&
+                  getIt<AdminModeService>().isAdminMode) ...[
+                IconButton(
+                  icon: Icon(Icons.content_copy_outlined,
+                      color: MyColors.primaryColor),
+                  onPressed: () => _copyItemToClipboard(),
+                  tooltip: 'Copy Item',
+                ),
                 IconButton(
                   icon: Icon(Icons.arrow_upward, color: MyColors.primaryColor),
                   onPressed: () => widget.onItemUp?.call(widget.item),
@@ -195,7 +206,7 @@ class _VideoItemState extends State<VideoItem> {
       builder: (context) => AlertDialog(
         title: const Text('Confirm Delete'),
         content: Text(
-            'Are you sure you want to delete this video?\n\n"${widget.item.title}"'),
+            'Are you sure you want to delete this video?\n\n"${widget.item.title}"\n\nIt will be moved to the Recycle Bin.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -212,14 +223,15 @@ class _VideoItemState extends State<VideoItem> {
 
     if (confirm == true) {
       try {
-        await Supabase.instance.client
-            .from('article_items')
-            .delete()
-            .eq('id', widget.item.id);
+        final softDeleteService = getIt<SoftDeleteService>();
+        await softDeleteService.softDelete(
+          tableName: 'article_items',
+          id: widget.item.id,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Video deleted successfully')),
+            const SnackBar(content: Text('Video moved to Recycle Bin')),
           );
           widget.onDeleted?.call(widget.item);
         }
@@ -233,5 +245,29 @@ class _VideoItemState extends State<VideoItem> {
         }
       }
     }
+  }
+
+  void _copyItemToClipboard() {
+    final clipboard = getIt<ContentClipboardService>();
+    clipboard.copy(
+      id: widget.item.id,
+      type: 'item',
+      data: {
+        'title': widget.item.title,
+        'youtube_url': widget.item.youtubeUrl,
+        'type': widget.item.type.name,
+        'article_id': widget.item.articleId,
+        'table': 'article_items',
+      },
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${widget.item.title}" copied to clipboard'),
+        action: SnackBarAction(
+          label: 'CLEAR',
+          onPressed: () => clipboard.clear(),
+        ),
+      ),
+    );
   }
 }

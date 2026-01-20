@@ -1,10 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
+import 'package:zad_aldaia/core/widgets/paste_content_dialog.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/content_clipboard_service.dart';
 import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 class CategoryWidget extends StatelessWidget {
@@ -87,7 +91,8 @@ class CategoryWidget extends StatelessWidget {
                 ),
 
                 // 3. Admin Actions
-                if (Supabase.instance.client.auth.currentUser != null)
+                if (Supabase.instance.client.auth.currentUser != null &&
+                    getIt<AdminModeService>().isAdminMode)
                   _buildAdminActions(context),
 
                 // 4. Chevron for public/all
@@ -130,16 +135,68 @@ class CategoryWidget extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          icon: const Icon(Icons.edit, color: Colors.white, size: 20),
-          onPressed: () {
-            Navigator.of(context).pushNamed(MyRoutes.addCategoryScreen,
-                arguments: {"id": category.id});
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit, size: 18),
+                  SizedBox(width: 8),
+                  Text('Edit'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'copy',
+              child: Row(
+                children: [
+                  Icon(Icons.copy, size: 18),
+                  SizedBox(width: 8),
+                  Text('Copy'),
+                ],
+              ),
+            ),
+            if (getIt<ContentClipboardService>().hasContent())
+              const PopupMenuItem(
+                value: 'paste',
+                child: Row(
+                  children: [
+                    Icon(Icons.content_paste, size: 18, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Paste Here', style: TextStyle(color: Colors.green)),
+                  ],
+                ),
+              ),
+            const PopupMenuItem(
+              value: 'delete',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, size: 18, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Delete', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+          onSelected: (value) {
+            switch (value) {
+              case 'edit':
+                Navigator.of(context).pushNamed(MyRoutes.addCategoryScreen,
+                    arguments: {"id": category.id});
+                break;
+              case 'copy':
+                _handleCopy(context);
+                break;
+              case 'paste':
+                _handlePaste(context);
+                break;
+              case 'delete':
+                _handleDelete(context);
+                break;
+            }
           },
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete, color: Colors.white70, size: 20),
-          onPressed: () => _handleDelete(context),
         ),
         Column(
           mainAxisSize: MainAxisSize.min,
@@ -158,6 +215,69 @@ class CategoryWidget extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  void _handleCopy(BuildContext context) {
+    final section = category.section ?? 'categories';
+    final clipboard = getIt<ContentClipboardService>();
+    clipboard.copy(
+      id: category.id,
+      type: section,
+      data: {
+        'title': category.title,
+        'image': category.image,
+        'is_active': category.isActive,
+        'table': section,
+      },
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${category.title}" copied to clipboard'),
+        action: SnackBarAction(
+          label: 'CLEAR',
+          onPressed: () => clipboard.clear(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handlePaste(BuildContext context) async {
+    final section = category.section ?? 'categories';
+    // Determine the child table name based on current section
+    String targetTable;
+    switch (section) {
+      case 'paths':
+        targetTable = 'sections';
+        break;
+      case 'sections':
+        targetTable = 'branches';
+        break;
+      case 'branches':
+        targetTable = 'topics';
+        break;
+      case 'topics':
+        targetTable = 'content_items';
+        break;
+      default:
+        targetTable = 'articles';
+    }
+
+    final result = await PasteContentDialog.show(
+      context: context,
+      targetParentId: category.id,
+      targetTable: targetTable,
+      targetTitle: category.title,
+    );
+
+    if (result != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Content pasted successfully!'),
+        ),
+      );
+      // Refresh the screen
+      onDeleted?.call();
+    }
   }
 
   Future<void> _handleDelete(BuildContext context) async {

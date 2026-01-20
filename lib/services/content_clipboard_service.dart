@@ -23,7 +23,7 @@ class ClipboardContent {
 
 /// Internal clipboard service for copy/paste within the app
 /// NOT using system clipboard - internal to app only
-class ContentClipboardService {
+class ContentClipboardService extends ChangeNotifier {
   ClipboardContent? _clipboard;
 
   /// Copy content to internal clipboard
@@ -40,6 +40,7 @@ class ContentClipboardService {
     );
 
     debugPrint('[Clipboard] Copied $type: $id');
+    notifyListeners(); // Notify listeners of change
   }
 
   /// Get content from clipboard
@@ -54,6 +55,7 @@ class ContentClipboardService {
       debugPrint('[Clipboard] Cleared: ${_clipboard!.sourceType}');
     }
     _clipboard = null;
+    notifyListeners(); // Notify listeners of change
   }
 
   /// Get clipboard content type (for UI display)

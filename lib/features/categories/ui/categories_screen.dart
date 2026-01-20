@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
-import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
-import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/core/widgets/admin_breadcrumb.dart';
+import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/clipboard_floating_button.dart';
+import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/content_clipboard_service.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 import '../../../core/theming/my_text_style.dart';
 
@@ -41,8 +46,23 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String? targetTable;
+    if (widget.parentId != null) {
+      // Determine child table based on parent type
+      // This is simplified - you may need to get parent type from state
+      targetTable = 'categories'; // Default to categories
+    }
+
     return Scaffold(
       backgroundColor: MyColors.backgroundColor,
+      floatingActionButton: widget.parentId != null
+          ? ClipboardFloatingButton(
+              targetParentId: widget.parentId,
+              targetTable: targetTable,
+              targetTitle: widget.title,
+              onPasted: loadData,
+            )
+          : null,
       appBar: AppBar(
         backgroundColor: MyColors.primaryColor,
         titleTextStyle: MyTextStyle.font16WhiteBold,
@@ -54,7 +74,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           const AdminModeIndicator(),
           const AdminModeQuickToggle(),
           GlobalHomeButton(),
-          if (Supabase.instance.client.auth.currentUser != null)
+          if (Supabase.instance.client.auth.currentUser != null &&
+              getIt<AdminModeService>().isAdminMode)
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () {
@@ -242,7 +263,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              if (Supabase.instance.client.auth.currentUser != null)
+              if (Supabase.instance.client.auth.currentUser != null &&
+                  getIt<AdminModeService>().isAdminMode)
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   icon: Icon(
@@ -259,6 +281,17 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                               size: 18, color: MyColors.primaryColor),
                           const SizedBox(width: 8),
                           Text('Edit', style: MyTextStyle.bodySmall),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'copy',
+                      child: Row(
+                        children: [
+                          Icon(Icons.copy,
+                              size: 18, color: MyColors.primaryColor),
+                          const SizedBox(width: 8),
+                          Text('Copy', style: MyTextStyle.bodySmall),
                         ],
                       ),
                     ),
@@ -306,6 +339,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                         MyRoutes.addCategoryScreen,
                         arguments: {"id": item.id},
                       );
+                    } else if (value == 'copy') {
+                      _handleCopy(item);
                     } else if (value == 'delete') {
                       await _deleteCategory(item);
                     } else if (value == 'move_up' && index > 0) {
@@ -369,15 +404,16 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     if (confirm == true) {
       try {
-        // Delete from the appropriate table
+        // Use soft delete
         final tableName = section.isNotEmpty ? section : 'categories';
-        await Supabase.instance.client
-            .from(tableName)
-            .delete()
-            .eq('id', item.id);
+        final softDeleteService = getIt<SoftDeleteService>();
+        await softDeleteService.softDelete(
+          tableName: tableName,
+          id: item.id,
+        );
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"${item.title}" deleted successfully!')),
+          SnackBar(content: Text('"${item.title}" moved to Recycle Bin')),
         );
 
         loadData();
@@ -390,5 +426,28 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         );
       }
     }
+  }
+
+  void _handleCopy(Category item) {
+    final section = item.section ?? 'categories';
+    final clipboard = getIt<ContentClipboardService>();
+    clipboard.copy(
+      id: item.id,
+      type: section,
+      data: {
+        'title': item.title,
+        'section': section,
+        'parent_id': widget.parentId,
+      },
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${item.title}" copied to clipboard'),
+        action: SnackBarAction(
+          label: 'CLEAR',
+          onPressed: () => clipboard.clear(),
+        ),
+      ),
+    );
   }
 }

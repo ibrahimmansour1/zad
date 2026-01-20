@@ -492,12 +492,61 @@ class _HomeScreenState extends State<HomeScreen> {
                                     );
                                   },
                                 ),
+                                // Exit Admin Mode - separate from logout
+                                if (adminMode.isAdminMode) ...[
+                                  const Divider(height: 1),
+                                  ListTile(
+                                    leading: Icon(Icons.delete_forever,
+                                        color: Colors.brown.shade600),
+                                    title: const Text("Recycle Bin"),
+                                    subtitle: const Text(
+                                        "Restore or permanently delete items",
+                                        style: TextStyle(fontSize: 12)),
+                                    trailing: const Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16),
+                                    onTap: () {
+                                      Navigator.of(sheetContext).pop();
+                                      Navigator.of(rootContext)
+                                          .pushNamed(MyRoutes.recycleBin);
+                                    },
+                                  ),
+                                  const Divider(height: 1),
+                                  ListTile(
+                                    leading: Icon(Icons.person_outline,
+                                        color: Colors.orange.shade700),
+                                    title: const Text("Exit Admin Mode",
+                                        style: TextStyle(
+                                            color: Colors.deepOrange)),
+                                    subtitle: const Text(
+                                        "Switch to user view without logging out",
+                                        style: TextStyle(fontSize: 12)),
+                                    onTap: () async {
+                                      Navigator.of(sheetContext).pop();
+                                      await adminMode.enableUserMode();
+                                      adminPermissionService.clearCache();
+                                      ScaffoldMessenger.of(rootContext)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Switched to User Mode. Admin features are now hidden.'),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                      // Refresh the current screen to reflect changes
+                                      setState(() {});
+                                    },
+                                  ),
+                                ],
                                 const Divider(height: 1),
                                 ListTile(
                                   leading: const Icon(Icons.logout,
                                       color: Colors.red),
                                   title: const Text("Logout",
                                       style: TextStyle(color: Colors.red)),
+                                  subtitle: const Text(
+                                      "Sign out completely from admin account",
+                                      style: TextStyle(fontSize: 12)),
                                   onTap: () async {
                                     Navigator.of(sheetContext).pop();
                                     await adminAuth.logout();

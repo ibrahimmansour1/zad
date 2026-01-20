@@ -9,6 +9,7 @@ import 'package:zad_aldaia/features/auth/auth_cubit.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
 import 'package:zad_aldaia/features/categories/logic/categories_cubit.dart';
 import 'package:zad_aldaia/features/categories/ui/AddNewCategoryCard.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
 
 class SectionsScreen extends StatefulWidget {
   const SectionsScreen({super.key});
@@ -109,16 +110,19 @@ class _SectionsScreenState extends State<SectionsScreen> {
                       ),
                       physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: state.items.length +
-                          (Supabase.instance.client.auth.currentUser != null
+                          (Supabase.instance.client.auth.currentUser != null &&
+                                  getIt<AdminModeService>().isAdminMode
                               ? 1
                               : 0),
                       itemBuilder: (context, index) {
                         if (Supabase.instance.client.auth.currentUser != null &&
+                            getIt<AdminModeService>().isAdminMode &&
                             index == 0) {
                           return const AddNewCategoryCard();
                         }
                         final adjustedIndex =
-                            Supabase.instance.client.auth.currentUser != null
+                            Supabase.instance.client.auth.currentUser != null &&
+                                    getIt<AdminModeService>().isAdminMode
                                 ? index - 1
                                 : index;
                         final item = state.items[adjustedIndex];

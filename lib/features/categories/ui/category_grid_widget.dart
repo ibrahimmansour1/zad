@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/di/dependency_injection.dart';
 import 'package:zad_aldaia/core/helpers/admin_password.dart';
 import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
+import 'package:zad_aldaia/core/widgets/paste_content_dialog.dart';
 import 'package:zad_aldaia/features/categories/data/models/category.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
+import 'package:zad_aldaia/services/content_clipboard_service.dart';
+import 'package:zad_aldaia/services/soft_delete_service.dart';
 
 class CategoryGridWidget extends StatefulWidget {
   final Category category;
@@ -213,7 +218,8 @@ class _CategoryGridWidgetState extends State<CategoryGridWidget>
                                   ),
                                 ),
                                 if (Supabase.instance.client.auth.currentUser !=
-                                    null)
+                                        null &&
+                                    getIt<AdminModeService>().isAdminMode)
                                   PopupMenuButton<String>(
                                     padding: EdgeInsets.zero,
                                     icon: Icon(
@@ -235,6 +241,36 @@ class _CategoryGridWidgetState extends State<CategoryGridWidget>
                                           ],
                                         ),
                                       ),
+                                      PopupMenuItem(
+                                        value: 'copy',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.copy,
+                                                size: 18,
+                                                color: MyColors.primaryColor),
+                                            const SizedBox(width: 8),
+                                            Text('Copy',
+                                                style: MyTextStyle.bodySmall),
+                                          ],
+                                        ),
+                                      ),
+                                      if (getIt<ContentClipboardService>()
+                                          .hasContent())
+                                        PopupMenuItem(
+                                          value: 'paste',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.content_paste,
+                                                  size: 18,
+                                                  color: Colors.green),
+                                              const SizedBox(width: 8),
+                                              Text('Paste Here',
+                                                  style: MyTextStyle.bodySmall
+                                                      .copyWith(
+                                                          color: Colors.green)),
+                                            ],
+                                          ),
+                                        ),
                                       PopupMenuItem(
                                         value: 'up',
                                         child: Row(
@@ -287,6 +323,12 @@ class _CategoryGridWidgetState extends State<CategoryGridWidget>
                                               "id": widget.category.id
                                             },
                                           );
+                                          break;
+                                        case 'copy':
+                                          _handleCopy(context);
+                                          break;
+                                        case 'paste':
+                                          _handlePaste(context);
                                           break;
                                         case 'up':
                                           widget.onMoveUp
@@ -365,7 +407,7 @@ class _CategoryGridWidgetState extends State<CategoryGridWidget>
       builder: (context) => AlertDialog(
         title: const Text('Confirm Delete'),
         content: Text(
-            'Are you sure you want to delete "${widget.category.title}"?\n\nThis action cannot be undone.'),
+            'Are you sure you want to delete "${widget.category.title}"?\n\nThis item will be moved to the Recycle Bin.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -383,16 +425,17 @@ class _CategoryGridWidgetState extends State<CategoryGridWidget>
     if (confirm == true) {
       try {
         final tableName = section.isNotEmpty ? section : 'categories';
-        await Supabase.instance.client
-            .from(tableName)
-            .delete()
-            .eq('id', widget.category.id);
+        final softDeleteService = getIt<SoftDeleteService>();
+        await softDeleteService.softDelete(
+          tableName: tableName,
+          id: widget.category.id,
+        );
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content:
-                    Text('"${widget.category.title}" deleted successfully!')),
+                    Text('"${widget.category.title}" moved to Recycle Bin')),
           );
           widget.onDeleted?.call();
         }
@@ -406,6 +449,69 @@ class _CategoryGridWidgetState extends State<CategoryGridWidget>
           );
         }
       }
+    }
+  }
+
+  void _handleCopy(BuildContext context) {
+    final section = widget.category.section ?? 'categories';
+    final clipboard = getIt<ContentClipboardService>();
+    clipboard.copy(
+      id: widget.category.id,
+      type: section,
+      data: {
+        'title': widget.category.title,
+        'image': widget.category.image,
+        'is_active': widget.category.isActive,
+        'table': section,
+      },
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${widget.category.title}" copied to clipboard'),
+        action: SnackBarAction(
+          label: 'CLEAR',
+          onPressed: () => clipboard.clear(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handlePaste(BuildContext context) async {
+    final section = widget.category.section ?? 'categories';
+    // Determine the child table name based on current section
+    String targetTable;
+    switch (section) {
+      case 'paths':
+        targetTable = 'sections';
+        break;
+      case 'sections':
+        targetTable = 'branches';
+        break;
+      case 'branches':
+        targetTable = 'topics';
+        break;
+      case 'topics':
+        targetTable = 'content_items';
+        break;
+      default:
+        targetTable = 'articles';
+    }
+
+    final result = await PasteContentDialog.show(
+      context: context,
+      targetParentId: widget.category.id,
+      targetTable: targetTable,
+      targetTitle: widget.category.title,
+    );
+
+    if (result != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Content pasted successfully!'),
+        ),
+      );
+      // Refresh the screen
+      widget.onDeleted?.call();
     }
   }
 }

@@ -52,7 +52,7 @@ class Item {
   Map<String, dynamic> toFormJson() => {
         "article_id": articleId,
         "note": note,
-        "order": order ?? 0,
+        "display_order": order ?? 0,
         "type": type.name,
         "title": title,
         "content": content,

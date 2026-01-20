@@ -6,9 +6,11 @@ import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/clipboard_floating_button.dart';
 import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/articles/logic/articles_cubit.dart';
 import 'package:zad_aldaia/features/articles/ui/widgets/article_item.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
 
 class ArticlesScreen extends StatefulWidget {
   final String categoryId;
@@ -58,8 +60,12 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MyColors.backgroundColor,
-      floatingActionButton: _showScrollToTop
-          ? FloatingActionButton(
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (_showScrollToTop)
+            FloatingActionButton(
               backgroundColor: MyColors.primaryColor,
               child: const Icon(Icons.arrow_upward, color: Colors.white),
               onPressed: () => _scrollController.animateTo(
@@ -67,8 +73,16 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                 duration: const Duration(milliseconds: 500),
                 curve: Curves.easeInOut,
               ),
-            )
-          : null,
+            ),
+          const SizedBox(height: 8),
+          ClipboardFloatingButton(
+            targetParentId: widget.categoryId,
+            targetTable: 'articles',
+            targetTitle: widget.title,
+            onPasted: () => cubit.loadArticles({'category_id': widget.categoryId}),
+          ),
+        ],
+      ),
       appBar: AppBar(
         title: Text(
           widget.title,
@@ -88,7 +102,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
               MyRoutes.searchScreen,
             ),
           ),
-          if (Supabase.instance.client.auth.currentUser != null)
+          if (Supabase.instance.client.auth.currentUser != null &&
+              getIt<AdminModeService>().isAdminMode)
             IconButton(
               icon: const Icon(Icons.add, color: Colors.white),
               onPressed: () => Navigator.of(context).pushNamed(
@@ -141,7 +156,8 @@ class _ArticlesScreenState extends State<ArticlesScreen> {
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      if (Supabase.instance.client.auth.currentUser != null)
+                      if (Supabase.instance.client.auth.currentUser != null &&
+                          getIt<AdminModeService>().isAdminMode)
                         TextButton(
                           onPressed: () => Navigator.of(context).pushNamed(
                             MyRoutes.addArticleScreen,

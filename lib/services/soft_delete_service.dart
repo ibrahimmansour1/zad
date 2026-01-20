@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:zad_aldaia/core/constants/db_constants.dart';
 import 'package:zad_aldaia/core/supabase_client.dart';
 import 'package:zad_aldaia/services/image_management_service.dart';
 
@@ -42,41 +43,7 @@ class SoftDeleteService {
   SoftDeleteService({ImageManagementService? imageService})
       : _imageService = imageService;
 
-  /// Get the child table name for a given table
-  String? _getChildTableName(String tableName) {
-    return {
-      'languages': 'paths',
-      'paths': 'sections',
-      'sections': 'branches',
-      'branches': 'topics',
-      'topics': 'content_items',
-      'articles': 'article_items',
-    }[tableName];
-  }
-
-  /// Get the parent field name for a given table
-  String? _getParentFieldName(String tableName) {
-    return {
-      'paths': 'language_id',
-      'sections': 'path_id',
-      'branches': 'section_id',
-      'topics': 'branch_id',
-      'content_items': 'topic_id',
-      'article_items': 'article_id',
-    }[tableName];
-  }
-
-  /// Get the parent table name for a given table
-  String? _getParentTableName(String tableName) {
-    return {
-      'paths': 'languages',
-      'sections': 'paths',
-      'branches': 'sections',
-      'topics': 'branches',
-      'content_items': 'topics',
-      'article_items': 'articles',
-    }[tableName];
-  }
+  // Note: Mapping methods now use DbSchemaMapper from db_constants.dart
 
   /// Check if content has references
   Future<List<Map<String, dynamic>>> _getReferences(String contentId) async {
@@ -123,27 +90,28 @@ class SoftDeleteService {
 
       // Mark this item as deleted
       await _supabase.from(tableName).update({
-        'is_deleted': true,
-        'deleted_at': DateTime.now().toIso8601String(),
-        'deleted_by': userId_,
-      }).eq('id', id);
+        DbColumns.isDeleted: true,
+        DbColumns.deletedAt: DateTime.now().toIso8601String(),
+        DbColumns.deletedBy: userId_,
+      }).eq(DbColumns.id, id);
       deletedCount++;
 
       // Cascade delete children if enabled
       if (cascade) {
-        final childTable = _getChildTableName(tableName);
-        final parentField = _getParentFieldName(childTable ?? '');
+        final contentType = DbSchemaMapper.getContentType(tableName);
+        final childTable = contentType != null ? DbSchemaMapper.getChildTableName(contentType) : null;
+        final parentField = contentType != null ? DbSchemaMapper.getParentFieldName(contentType) : null;
         
         if (childTable != null && parentField != null) {
           final children = await _supabase
               .from(childTable)
-              .select('id')
+              .select(DbColumns.id)
               .eq(parentField, id)
-              .neq('is_deleted', true);
+              .neq(DbColumns.isDeleted, true);
 
           for (final child in children) {
             final childDeleted = await softDelete(
-              id: child['id'],
+              id: child[DbColumns.id],
               tableName: childTable,
               userId: userId_,
               cascade: true,
@@ -156,10 +124,10 @@ class SoftDeleteService {
 
       // Mark any references to this content as orphaned
       try {
-        await _supabase.from('content_references').update({
+        await _supabase.from(DbTables.contentReferences).update({
           'is_orphaned': true,
           'orphaned_at': DateTime.now().toIso8601String(),
-        }).eq('original_id', id);
+        }).eq(DbColumns.originalId, id);
       } catch (e) {
         // Ignore if table doesn't exist
       }
@@ -181,22 +149,31 @@ class SoftDeleteService {
       debugPrint('[SoftDelete] Restoring $id from $tableName');
 
       // Check if parent exists and is not deleted
-      final parentField = _getParentFieldName(tableName);
-      final parentTable = _getParentTableName(tableName);
+      final contentType = DbSchemaMapper.getContentType(tableName);
+      final parentField = contentType != null ? DbSchemaMapper.getParentFieldName(contentType) : null;
+      // Get parent table by removing the last level from content hierarchy
+      String? parentTable;
+      if (contentType != null) {
+        final hierarchyIndex = DbSchemaMapper.hierarchyOrder.indexOf(contentType);
+        if (hierarchyIndex > 0) {
+          final parentType = DbSchemaMapper.hierarchyOrder[hierarchyIndex - 1];
+          parentTable = DbSchemaMapper.getTableName(parentType);
+        }
+      }
 
       if (parentField != null && parentTable != null) {
         // Get the item to find its parent
         final item = await _supabase
             .from(tableName)
             .select(parentField)
-            .eq('id', id)
+            .eq(DbColumns.id, id)
             .maybeSingle();
 
         if (item != null && item[parentField] != null) {
           final parent = await _supabase
               .from(parentTable)
-              .select('id, is_deleted')
-              .eq('id', item[parentField])
+              .select('${DbColumns.id}, ${DbColumns.isDeleted}')
+              .eq(DbColumns.id, item[parentField])
               .maybeSingle();
 
           if (parent == null) {
@@ -215,17 +192,17 @@ class SoftDeleteService {
 
       // Restore the item
       await _supabase.from(tableName).update({
-        'is_deleted': false,
-        'deleted_at': null,
-        'deleted_by': null,
-      }).eq('id', id);
+        DbColumns.isDeleted: false,
+        DbColumns.deletedAt: null,
+        DbColumns.deletedBy: null,
+      }).eq(DbColumns.id, id);
 
       // Un-orphan any references to this content
       try {
-        await _supabase.from('content_references').update({
+        await _supabase.from(DbTables.contentReferences).update({
           'is_orphaned': false,
           'orphaned_at': null,
-        }).eq('original_id', id);
+        }).eq(DbColumns.originalId, id);
       } catch (e) {
         // Ignore if table doesn't exist
       }
@@ -257,15 +234,15 @@ class SoftDeleteService {
       // Delete any references to this content
       try {
         await _supabase
-            .from('content_references')
+            .from(DbTables.contentReferences)
             .delete()
-            .eq('original_id', id);
+            .eq(DbColumns.originalId, id);
       } catch (e) {
         // Ignore if table doesn't exist
       }
 
       // Permanently delete record
-      await _supabase.from(tableName).delete().eq('id', id);
+      await _supabase.from(tableName).delete().eq(DbColumns.id, id);
 
       debugPrint('[SoftDelete] Successfully permanently deleted: $id');
     } catch (e) {

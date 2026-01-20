@@ -8,12 +8,14 @@ import 'package:zad_aldaia/core/routing/routes.dart';
 import 'package:zad_aldaia/core/theming/my_colors.dart';
 import 'package:zad_aldaia/core/theming/my_text_style.dart';
 import 'package:zad_aldaia/core/widgets/admin_mode_toggle.dart';
+import 'package:zad_aldaia/core/widgets/clipboard_floating_button.dart';
 import 'package:zad_aldaia/core/widgets/global_home_button.dart';
 import 'package:zad_aldaia/features/items/data/models/item.dart';
 import 'package:zad_aldaia/features/items/logic/items_cubit.dart';
 import 'package:zad_aldaia/features/items/ui/widgets/image_item.dart';
 import 'package:zad_aldaia/features/items/ui/widgets/text_item.dart';
 import 'package:zad_aldaia/features/items/ui/widgets/video_item.dart';
+import 'package:zad_aldaia/services/admin_mode_service.dart';
 
 class ItemsScreen extends StatefulWidget {
   final String? articleId;
@@ -112,6 +114,12 @@ class _ItemsScreenState extends State<ItemsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MyColors.backgroundColor,
+      floatingActionButton: ClipboardFloatingButton(
+        targetParentId: widget.articleId,
+        targetTable: 'article_items',
+        targetTitle: widget.title,
+        onPasted: loadData,
+      ),
       appBar: AppBar(
         title: Text(
           widget.title ?? 'Items',
@@ -156,7 +164,8 @@ class _ItemsScreenState extends State<ItemsScreen>
               icon: const Icon(Icons.share, color: Colors.white),
               onPressed: () => Share.multi(selectedItems),
             ),
-          if (Supabase.instance.client.auth.currentUser != null)
+          if (Supabase.instance.client.auth.currentUser != null &&
+              getIt<AdminModeService>().isAdminMode)
             IconButton(
               icon: const Icon(Icons.add_circle_outline, color: Colors.white),
               onPressed: () => Navigator.of(context).pushNamed(
